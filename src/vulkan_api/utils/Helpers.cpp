@@ -1,7 +1,7 @@
 #include <vector>
 
-#include "vulkan/utils/Constants.hpp"
-#include "vulkan/utils/Helpers.hpp"
+#include "vulkan_api/utils/Constants.hpp"
+#include "vulkan_api/utils/Helpers.hpp"
 
 
 BEGIN_NAMESPACE_VK

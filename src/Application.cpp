@@ -49,9 +49,10 @@ void Application::initWindow() noexcept
 }
 
 
-void Application::initVulkan() noexcept
+bool Application::initVulkan() noexcept
 {
-    createInstance();
+    if(!m_instance.create()) return false;
+    
     pickPhysicalDevice();
     createSurface();
     createLogicalDevice();
@@ -72,6 +73,8 @@ void Application::initVulkan() noexcept
     createDescriptorSets();
     createCommandBuffers();
     createSyncObjects();
+
+    return true;
 }
 
 
@@ -145,11 +148,11 @@ void Application::cleanup() noexcept
     vkDestroyDevice(device, nullptr);
 
 #ifdef DEBUG
-    DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    DestroyDebugUtilsMessengerEXT(m_instance.handle, debugMessenger, nullptr);
 #endif // !DEBUG
 
-    vkDestroySurfaceKHR(instance, surface, nullptr);
-    vkDestroyInstance(instance, nullptr);
+    vkDestroySurfaceKHR(m_instance.handle, surface, nullptr);
+    m_instance.destroy(); //vkDestroyInstance(instance, nullptr);
 
     glfwDestroyWindow(window);
 
@@ -178,91 +181,15 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-bool Application::createInstance() noexcept
-{
-#ifdef DEBUG
-    if (!checkValidationLayerSupport())
-        return false;
-#endif // !DEBUG
-
-    std::vector<const char*> neededExtensions = 
-    {
-        VK_KHR_SURFACE_EXTENSION_NAME
-    };
-
-#ifdef _WIN32
-    neededExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#endif
-
-#ifdef __linux__
-    neededExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-#endif
-
-#ifdef DEBUG
-    neededExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-    uint32_t availableExtensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
-
-    std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, availableExtensions.data());
-
-    std::unordered_set<std::string> availableExtensionsSet;
-
-    for (uint32_t i = 0; i < availableExtensionCount; ++i)
-        availableExtensionsSet.insert(availableExtensions[i].extensionName);
-
-    for (const auto it : neededExtensions)
-        if (availableExtensionsSet.find(it) == availableExtensionsSet.end())	
-            return false;	
-
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Vulkan App";
-    appInfo.applicationVersion = 1;
-    appInfo.pEngineName = "Shiny Engine";
-    appInfo.engineVersion = 1;
-    appInfo.apiVersion = VK_API_VERSION_1_4;
-
-    VkInstanceCreateInfo instanceCreateInfo = {};
-    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(neededExtensions.size());
-    instanceCreateInfo.ppEnabledExtensionNames = neededExtensions.data();
-
-#ifdef DEBUG
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-
-        debugCreateInfo.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) noexcept
-        {
-            std::cerr << "validation layer: " << pCallbackData->pMessage << '\n';
-
-            return VK_FALSE;
-        };
-
-        instanceCreateInfo.pNext = static_cast<const void*>(&debugCreateInfo);
-#endif // !DEBUG
-
-    return (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) == VK_SUCCESS);
-}
-
-
 bool Application::pickPhysicalDevice() noexcept
 {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(m_instance.handle, &deviceCount, nullptr);
 
     if (deviceCount)
     {
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(m_instance.handle, &deviceCount, devices.data());
 
         for (const auto& device : devices) 
         {
@@ -296,7 +223,7 @@ void Application::createSurface() noexcept
     surfaceCreateInfo.hwnd = glfwGetWin32Window(window);
     surfaceCreateInfo.hinstance = GetModuleHandle(nullptr);
 
-    if(vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface) != VK_SUCCESS)
+    if(vkCreateWin32SurfaceKHR(m_instance.handle, &surfaceCreateInfo, nullptr, &surface) != VK_SUCCESS)
     {
         printf("failed to create window surface!");
     }

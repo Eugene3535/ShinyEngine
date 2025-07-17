@@ -1,10 +1,10 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include <vulkan/vulkan.h>
-
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+
+#include <vulkan/vulkan.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -24,11 +24,13 @@
 #include <optional>
 #include <set>
 
+#include "vulkan_api/utils/Defines.hpp"
+#include "vulkan_api/utils/Constants.hpp"
+#include "vulkan_api/wrappers/VulkanInstance.hpp"
+
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
 
 
 const std::array<const char*, 1> validationLayers = 
@@ -136,15 +138,12 @@ public:
 
 private:
     void initWindow() noexcept;
-    void initVulkan() noexcept;
+    bool initVulkan() noexcept;
     void mainLoop() noexcept;
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-
-    bool createInstance()     noexcept;
     bool pickPhysicalDevice() noexcept;
-
     void createSurface() noexcept;
     void createLogicalDevice() noexcept;
     void createSwapChain() noexcept;
@@ -191,9 +190,9 @@ private:
     static std::vector<char> readFile(const std::string &filename) noexcept;
 
 
-    GLFWwindow *window;
+    GLFWwindow* window;
 
-    VkInstance instance;
+    VulkanInstance m_instance;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 

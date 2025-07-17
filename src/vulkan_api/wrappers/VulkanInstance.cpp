@@ -3,9 +3,9 @@
 #include <string>
 #include <cstdio>
 
-#include "vulkan/utils/Constants.hpp"
-#include "vulkan/utils/Helpers.hpp"
-#include "vulkan/wrappers/VulkanInstance.hpp"
+#include "vulkan_api/utils/Constants.hpp"
+#include "vulkan_api/utils/Helpers.hpp"
+#include "vulkan_api/wrappers/VulkanInstance.hpp"
 
 
 VulkanInstance::VulkanInstance() noexcept:
