@@ -1,3 +1,7 @@
+#include <vector>
+#include <unordered_set>
+#include <string>
+
 #include <vulkan/vulkan.h>
 
 #include "vulkan_api/utils/Constants.hpp"
@@ -16,7 +20,7 @@ LogicalDevice::LogicalDevice() noexcept:
 LogicalDevice::~LogicalDevice() = default;
 
 
-bool LogicalDevice::create(VkPhysicalDevice_T* physicalDevice) noexcept
+bool LogicalDevice::create(VkPhysicalDevice physicalDevice) noexcept
 {
     if(handle)
         return true;
@@ -42,19 +46,34 @@ bool LogicalDevice::create(VkPhysicalDevice_T* physicalDevice) noexcept
     	queueCreateInfo.queueCount		 = 1;
     	queueCreateInfo.pQueuePriorities = &queuePriority;
 
-        const std::array<const char*, 2> deviceExtensions = 
+        const std::array<const char*, 2> requiredExtensions = 
         {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
         };
+
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+
+        std::unordered_set<std::string> deviceExtensions;
+
+        for (const auto& it : availableExtensions)
+            deviceExtensions.insert(it.extensionName);
+
+        for (const auto& extension : requiredExtensions)
+            if(deviceExtensions.find(extension) == deviceExtensions.end())
+                return false;
 
         VkDeviceCreateInfo deviceCreateInfo = {};
     	deviceCreateInfo.sType				     = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     	deviceCreateInfo.queueCreateInfoCount	 = 1;
     	deviceCreateInfo.pQueueCreateInfos	     = &queueCreateInfo;
     	deviceCreateInfo.pEnabledFeatures		 = &enabledFeatures;
-    	deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
-    	deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    	deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size());
+    	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
 #ifdef _DEBUG
     	deviceCreateInfo.enabledLayerCount       = static_cast<uint32_t>(VALIDATION_LAYERS.size());
     	deviceCreateInfo.ppEnabledLayerNames     = VALIDATION_LAYERS.data();

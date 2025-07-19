@@ -28,21 +28,21 @@ bool VulkanInstance::create() noexcept
         return false;
 #endif // !DEBUG
 
-    std::vector<const char*> neededExtensions = 
+    std::vector<const char*> requiredExtensions = 
     {
         VK_KHR_SURFACE_EXTENSION_NAME
     };
 
 #ifdef _WIN32
-    neededExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    requiredExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #endif
 
 #ifdef __linux__
-    neededExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+    requiredExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
 #ifdef DEBUG
-    neededExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
     uint32_t availableExtensionCount = 0;
@@ -51,14 +51,14 @@ bool VulkanInstance::create() noexcept
     std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, availableExtensions.data());
 
-    std::unordered_set<std::string> availableExtensionsSet;
+    std::unordered_set<std::string> deviceExtensions;
 
-    for (uint32_t i = 0; i < availableExtensionCount; ++i)
-        availableExtensionsSet.insert(availableExtensions[i].extensionName);
+    for (const auto& it : availableExtensions)
+        deviceExtensions.insert(it.extensionName);
 
-    for (const auto it : neededExtensions)
-        if (availableExtensionsSet.find(it) == availableExtensionsSet.end())	
-            return false;	
+    for (const auto it : requiredExtensions)
+        if (deviceExtensions.find(it) == deviceExtensions.end())	
+            return false;
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -71,8 +71,8 @@ bool VulkanInstance::create() noexcept
     VkInstanceCreateInfo instanceCreateInfo = {};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &appInfo;
-    instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(neededExtensions.size());
-    instanceCreateInfo.ppEnabledExtensionNames = neededExtensions.data();
+    instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+    instanceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 #ifdef DEBUG
         instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
