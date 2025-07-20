@@ -29,10 +29,12 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
+	src/vulkan_api/utils/Structures.cpp
     src/vulkan_api/wrappers/instance/VulkanInstance.cpp
 	src/vulkan_api/wrappers/physical_device/PhysicalDevice.cpp
 	src/vulkan_api/wrappers/logical_device/LogicalDevice.cpp
 	src/vulkan_api/wrappers/surface/Surface.cpp
+	src/vulkan_api/wrappers/swapchain/Swapchain.cpp
 	src/Application.cpp
 	src/main.cpp
 )

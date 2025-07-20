@@ -56,8 +56,8 @@ bool Application::initVulkan() noexcept
     if(!m_physicalDevice.select(m_instance.handle))      return false;
     if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
     if(!m_surface.create(m_instance.handle, window))     return false;
-
-    createSwapChain();      
+    if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
+    
     createImageViews();  
     createRenderPass();
     createDescriptorSetLayout();
@@ -103,7 +103,7 @@ void Application::cleanupSwapChain() noexcept
         vkDestroyImageView(m_logicalDevice.handle, imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(m_logicalDevice.handle, swapChain, nullptr);
+    m_swapchain.destroy(m_logicalDevice.handle);
 }
 
 
@@ -178,64 +178,19 @@ void Application::recreateSwapChain() noexcept
 
     cleanupSwapChain();
 
-    createSwapChain();
+    m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
     createImageViews();
     createFramebuffers();
 }
 
 
-void Application::createSwapChain() noexcept
-{
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice.handle);
-
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
-    }
-
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = m_surface.handle;
-
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-
-    if (vkCreateSwapchainKHR(m_logicalDevice.handle, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
-    {
-        printf("failed to create swap chain!");
-    }
-
-    vkGetSwapchainImagesKHR(m_logicalDevice.handle, swapChain, &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(m_logicalDevice.handle, swapChain, &imageCount, swapChainImages.data());
-
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
-}
-
-
 void Application::createImageViews() noexcept
 {
-    swapChainImageViews.resize(swapChainImages.size());
+    swapChainImageViews.resize(m_swapchain.images.size());
 
-    for (size_t i = 0; i < swapChainImages.size(); i++)
+    for (size_t i = 0; i < m_swapchain.images.size(); i++)
     {
-        swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
+        swapChainImageViews[i] = createImageView(m_swapchain.images[i], static_cast<VkFormat>(m_swapchain.format));
     }
 }
 
@@ -243,7 +198,7 @@ void Application::createImageViews() noexcept
 void Application::createRenderPass() noexcept
 {
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = swapChainImageFormat;
+    colorAttachment.format = static_cast<VkFormat>(m_swapchain.format);
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -433,6 +388,9 @@ void Application::createGraphicsPipeline() noexcept
 
 void Application::createFramebuffers() noexcept
 {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
     swapChainFramebuffers.resize(swapChainImageViews.size());
 
     for (size_t i = 0; i < swapChainImageViews.size(); i++)
@@ -444,8 +402,8 @@ void Application::createFramebuffers() noexcept
         framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = &attachments;
-        framebufferInfo.width = swapChainExtent.width;
-        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.width = width;
+        framebufferInfo.height = height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(m_logicalDevice.handle, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
@@ -932,12 +890,16 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         printf("failed to begin recording command buffer!");
     }
 
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderPass;
     renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapChainExtent;
+    renderPassInfo.renderArea.extent = extent;
 
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     renderPassInfo.clearValueCount = 1;
@@ -950,15 +912,15 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float)swapChainExtent.width;
-    viewport.height = (float)swapChainExtent.height;
+    viewport.width = (float)extent.width;
+    viewport.height = (float)extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
+    scissor.extent = extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
@@ -1014,10 +976,14 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+
     UniformBufferObject ubo{};
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
     ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    ubo.proj = glm::perspective(glm::radians(60.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
+    ubo.proj = glm::perspective(glm::radians(60.0f), width / (float)height, 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -1031,7 +997,7 @@ void Application::drawFrame() noexcept
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -1077,7 +1043,7 @@ void Application::drawFrame() noexcept
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = {swapChain};
+    VkSwapchainKHR swapChains[] = {m_swapchain.handle};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
 
@@ -1117,86 +1083,6 @@ VkShaderModule Application::createShaderModule(const std::vector<char> &code) no
     }
 
     return shaderModule;
-}
-
-
-VkSurfaceFormatKHR Application::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) noexcept
-{
-    for (const auto &availableFormat : availableFormats)
-    {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            return availableFormat;
-        }
-    }
-
-    return availableFormats[0];
-}
-
-
-VkPresentModeKHR Application::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) noexcept
-{
-    for (const auto &availablePresentMode : availablePresentModes)
-    {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-        {
-            return availablePresentMode;
-        }
-    }
-
-    return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-
-VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) noexcept
-{
-    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-    {
-        return capabilities.currentExtent;
-    }
-    else
-    {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)};
-
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-        return actualExtent;
-    }
-}
-
-
-SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice device) noexcept
-{
-    auto surface = m_surface.handle;
-
-    SwapChainSupportDetails details;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-    uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-    if (formatCount != 0)
-    {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-    }
-
-    uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-    if (presentModeCount != 0)
-    {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-    }
-
-    return details;
 }
 
 

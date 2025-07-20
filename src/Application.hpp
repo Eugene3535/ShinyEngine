@@ -30,6 +30,7 @@
 #include "vulkan_api/wrappers/physical_device/PhysicalDevice.hpp"
 #include "vulkan_api/wrappers/logical_device/LogicalDevice.hpp"
 #include "vulkan_api/wrappers/surface/Surface.hpp"
+#include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -135,7 +136,6 @@ private:
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createSwapChain() noexcept;
     void createImageViews() noexcept;
     void createRenderPass() noexcept;
     void createDescriptorSetLayout() noexcept;
@@ -167,12 +167,6 @@ private:
     void drawFrame() noexcept;
 
     VkShaderModule createShaderModule(const std::vector<char> &code) noexcept;
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) noexcept;
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) noexcept;
-
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) noexcept;
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) noexcept;
-
     static std::vector<char> readFile(const std::string &filename) noexcept;
 
 
@@ -182,14 +176,11 @@ private:
     PhysicalDevice m_physicalDevice;
     LogicalDevice  m_logicalDevice;
     Surface        m_surface;
+    Swapchain      m_swapchain;
 
 
     VkDebugUtilsMessengerEXT debugMessenger;
-
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
+    
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
