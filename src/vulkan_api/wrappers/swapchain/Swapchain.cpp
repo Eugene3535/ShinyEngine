@@ -2,7 +2,7 @@
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 
-#define SWAPCHAIN_BUFFER_COUNT 3
+
 
 
 Swapchain::Swapchain() noexcept:
@@ -19,6 +19,9 @@ Swapchain::~Swapchain() = default;
 
 bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, VkSurfaceKHR surface) noexcept
 {
+	if(handle)
+		return true;
+
 	m_logicalDevice = logicalDevice;
 
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
@@ -28,7 +31,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 
     auto swapChainSupport = vk::query_swapchain_support(phisycalDevice, surface);
 
-    if (SWAPCHAIN_BUFFER_COUNT > swapChainSupport->capabilities.maxImageCount)
+    if (buffer_count > swapChainSupport->capabilities.maxImageCount)
 		return false;
 
 	format = static_cast<VkFormat>(swapChainSupport->getSurfaceFormat().format);
@@ -36,7 +39,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
 	swapchainCreateInfo.sType			 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapchainCreateInfo.surface			 = surface;
-	swapchainCreateInfo.minImageCount	 = SWAPCHAIN_BUFFER_COUNT;
+	swapchainCreateInfo.minImageCount	 = buffer_count;
 	swapchainCreateInfo.imageFormat		 = static_cast<VkFormat>(format);
 	swapchainCreateInfo.imageColorSpace	 = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 	swapchainCreateInfo.imageExtent		 = surfaceCapabilities.currentExtent;
@@ -51,8 +54,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 
     if (vkCreateSwapchainKHR(logicalDevice, &swapchainCreateInfo, nullptr, &handle) == VK_SUCCESS)
 	{
-        uint32_t imageCount = SWAPCHAIN_BUFFER_COUNT;
-		images.resize(imageCount);
+        uint32_t imageCount = buffer_count;
 
         if (vkGetSwapchainImagesKHR(logicalDevice, handle, &imageCount, images.data()) == VK_SUCCESS)
             return true;
@@ -65,5 +67,8 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 void Swapchain::cleanup() noexcept
 {
 	if(m_logicalDevice)
+	{
 		vkDestroySwapchainKHR(m_logicalDevice, handle, nullptr);
+		handle = nullptr;
+	}
 }

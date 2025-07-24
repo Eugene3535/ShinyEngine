@@ -1,11 +1,15 @@
 #ifndef SWAPCHAIN_HPP
 #define SWAPCHAIN_HPP
 
-#include <vector>
+#include <array>
+
 
 class Swapchain
 {
+    static constexpr uint32_t buffer_count = 3;
+
 public:
+
     Swapchain() noexcept;
     ~Swapchain();
 
@@ -14,7 +18,7 @@ public:
 
     VkSwapchainKHR_T* handle;
     int32_t format;
-    std::vector<VkImage_T*> images;
+    std::array<VkImage_T*, buffer_count> images;
 
 private:
     struct VkDevice_T* m_logicalDevice;
