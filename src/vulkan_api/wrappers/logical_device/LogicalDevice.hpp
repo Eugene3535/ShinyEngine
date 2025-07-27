@@ -1,6 +1,7 @@
 #ifndef LOGICAL_DEVICE_HPP
 #define LOGICAL_DEVICE_HPP
 
+#include <cstdint>
 
 class LogicalDevice
 {
@@ -13,6 +14,7 @@ public:
 
     struct VkDevice_T* handle;
     struct VkQueue_T*  queue;
+    uint32_t mainQueueFamilyIndex;
 };
 
 #endif // !LOGICAL_DEVICE_HPP

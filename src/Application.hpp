@@ -33,6 +33,7 @@
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 #include "vulkan_api/wrappers/render_pass/RenderPass.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
+#include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -64,9 +65,6 @@ private:
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createDescriptorSetLayout() noexcept;
-    void createGraphicsPipeline() noexcept;
-    void createCommandPool() noexcept;
     void createTextureImage() noexcept;
     void createTextureImageView() noexcept;
     void createTextureSampler() noexcept;
@@ -85,7 +83,6 @@ private:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) noexcept;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) noexcept;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept;
-    void createCommandBuffers() noexcept;
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
     void createSyncObjects() noexcept;
     void updateUniformBuffer(uint32_t currentImage) noexcept;
@@ -94,16 +91,15 @@ private:
 
     GLFWwindow* window;
 
-    VulkanInstance   m_instance;
-    PhysicalDevice   m_physicalDevice;
-    LogicalDevice    m_logicalDevice;
-    Surface          m_surface;
-    Swapchain        m_swapchain;
-    RenderPass       m_renderPass;
-    GraphicsPipeline m_pipeline;
+    VulkanInstance    m_instance;
+    PhysicalDevice    m_physicalDevice;
+    LogicalDevice     m_logicalDevice;
+    Surface           m_surface;
+    Swapchain         m_swapchain;
+    RenderPass        m_renderPass;
+    GraphicsPipeline  m_pipeline;
+    CommandBufferPool m_commandPool;
 
-
-    VkCommandPool commandPool;
 
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
@@ -121,8 +117,6 @@ private:
 
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
-
-    std::vector<VkCommandBuffer> commandBuffers;
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;

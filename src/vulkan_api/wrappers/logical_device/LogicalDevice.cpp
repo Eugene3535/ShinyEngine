@@ -11,7 +11,8 @@
 
 LogicalDevice::LogicalDevice() noexcept:
     handle(nullptr),
-    queue(nullptr)
+    queue(nullptr),
+    mainQueueFamilyIndex(0)
 {
 
 }
@@ -36,7 +37,7 @@ bool LogicalDevice::create(VkPhysicalDevice physicalDevice) noexcept
     if (supportedFeatures.fillModeNonSolid)
         enabledFeatures.fillModeNonSolid = VK_TRUE;
     
-	if(uint32_t mainQueueFamilyIndex = vk::get_main_queue_family_index(static_cast<void*>(physicalDevice)); mainQueueFamilyIndex != UINT32_MAX)
+	if(mainQueueFamilyIndex = vk::get_main_queue_family_index(static_cast<void*>(physicalDevice)); mainQueueFamilyIndex != UINT32_MAX)
     {
         const float queuePriority = 1.0f;
 

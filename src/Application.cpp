@@ -68,7 +68,9 @@ bool Application::initVulkan() noexcept
         shaders[1].destroy(m_logicalDevice.handle);
     }
 
-    createCommandPool();
+    if(!m_commandPool.create(m_logicalDevice)) return false;
+
+    
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
@@ -77,7 +79,6 @@ bool Application::initVulkan() noexcept
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
-    createCommandBuffers();
     createSyncObjects();
 
     return true;
@@ -132,7 +133,7 @@ void Application::cleanup() noexcept
         vkDestroyFence(device, inFlightFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(device, commandPool, nullptr);
+    m_commandPool.destroy(device);
 
     m_logicalDevice.destroy();
 
@@ -161,20 +162,6 @@ void Application::recreateSwapChain() noexcept
     m_swapchain.destroy(m_logicalDevice.handle);
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
     m_renderPass.create(m_logicalDevice.handle, m_swapchain, window);
-}
-
-
-void Application::createCommandPool() noexcept
-{
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = vk::get_main_queue_family_index(m_physicalDevice.handle);
-
-    if (vkCreateCommandPool(m_logicalDevice.handle, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
-    {
-        printf("failed to create graphics command pool!");
-    }
 }
 
 
@@ -550,7 +537,7 @@ VkCommandBuffer Application::beginSingleTimeCommands() noexcept
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
+    allocInfo.commandPool = m_commandPool.handle;
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -578,7 +565,7 @@ void Application::endSingleTimeCommands(VkCommandBuffer commandBuffer) noexcept
     vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(m_logicalDevice.queue);
 
-    vkFreeCommandBuffers(m_logicalDevice.handle, commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(m_logicalDevice.handle, m_commandPool.handle, 1, &commandBuffer);
 }
 
 
@@ -610,23 +597,6 @@ uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags 
     printf("failed to find suitable memory type!");
 
     return 0;
-}
-
-
-void Application::createCommandBuffers() noexcept
-{
-    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
-
-    if (vkAllocateCommandBuffers(m_logicalDevice.handle, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
-    {
-        printf("failed to allocate command buffers!");
-    }
 }
 
 
@@ -763,8 +733,8 @@ void Application::drawFrame() noexcept
 
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-    vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-    recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+    vkResetCommandBuffer(m_commandPool.commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+    recordCommandBuffer(m_commandPool.commandBuffers[currentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -776,7 +746,7 @@ void Application::drawFrame() noexcept
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+    submitInfo.pCommandBuffers = &m_commandPool.commandBuffers[currentFrame];
 
     VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
