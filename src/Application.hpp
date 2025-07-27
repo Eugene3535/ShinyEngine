@@ -32,74 +32,11 @@
 #include "vulkan_api/wrappers/surface/Surface.hpp"
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 #include "vulkan_api/wrappers/render_pass/RenderPass.hpp"
+#include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
-
-
-const std::array<const char*, 1> validationLayers = 
-{
-    "VK_LAYER_KHRONOS_validation"
-};
-
-
-const std::array<const char*, 1> deviceExtensions = 
-{
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) noexcept;
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) noexcept;
-
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-
-struct Vertex
-{
-    glm::vec2 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() noexcept
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() noexcept
-    {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-};
 
 
 struct UniformBufferObject
@@ -107,15 +44,6 @@ struct UniformBufferObject
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
-};
-
-
-const std::vector<Vertex> vertices = 
-{
-    {{ -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f }},
-    {{  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
-    {{  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }},
-    {{ -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }}
 };
 
 
@@ -166,17 +94,14 @@ private:
 
     GLFWwindow* window;
 
-    VulkanInstance m_instance;
-    PhysicalDevice m_physicalDevice;
-    LogicalDevice  m_logicalDevice;
-    Surface        m_surface;
-    Swapchain      m_swapchain;
-    RenderPass     m_renderPass;
+    VulkanInstance   m_instance;
+    PhysicalDevice   m_physicalDevice;
+    LogicalDevice    m_logicalDevice;
+    Surface          m_surface;
+    Swapchain        m_swapchain;
+    RenderPass       m_renderPass;
+    GraphicsPipeline m_pipeline;
 
-
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
 
     VkCommandPool commandPool;
 
