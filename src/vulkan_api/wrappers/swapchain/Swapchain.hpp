@@ -12,12 +12,14 @@ public:
     Swapchain() noexcept;
     ~Swapchain();
 
-    bool create(struct VkPhysicalDevice_T* phisycalDevice, struct VkDevice_T* logicalDevice, struct VkSurfaceKHR_T* surface) noexcept;
+    bool create(struct VkPhysicalDevice_T* phisycalDevice, struct VkDevice_T* logicalDevice, struct VkSurfaceKHR_T* surface, uint32_t width, uint32_t height) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
     VkSwapchainKHR_T* handle;
     int32_t format;
     std::array<VkImage_T*, buffer_count> images;
+    uint32_t m_width; 
+    uint32_t m_height;
 };
 
 #endif // !SWAPCHAIN_HPP

@@ -43,12 +43,15 @@ void Application::initWindow() noexcept
 
 bool Application::initVulkan() noexcept
 {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
     {// Common
         if(!m_instance.create())                                                                   return false;
         if(!m_physicalDevice.select(m_instance.handle))                                            return false;
         if(!m_logicalDevice.create(m_physicalDevice.handle))                                       return false;
         if(!m_surface.create(m_instance.handle, window))                                           return false;
-        if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
+        if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height)) return false;
         if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain, window))                      return false;
     }
 
@@ -104,7 +107,7 @@ void Application::cleanup() noexcept
     m_renderPass.destroy(device);
     m_swapchain.destroy(device);
     m_pipeline.destroy(device);
-    m_renderPass.destroy(device);
+    vkDestroyRenderPass(device, m_renderPass.handle, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -160,7 +163,8 @@ void Application::recreateSwapChain() noexcept
 
     m_renderPass.destroy(m_logicalDevice.handle);
     m_swapchain.destroy(m_logicalDevice.handle);
-    m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
+
+    m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height);
     m_renderPass.create(m_logicalDevice.handle, m_swapchain, window);
 }
 
@@ -612,7 +616,7 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
-    VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+    VkExtent2D extent = { m_swapchain.m_width, m_swapchain.m_height };
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -752,7 +756,7 @@ void Application::drawFrame() noexcept
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
+    if (auto result = vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, inFlightFences[currentFrame]); result != VK_SUCCESS)
     {
         printf("failed to submit draw command buffer!");
     }

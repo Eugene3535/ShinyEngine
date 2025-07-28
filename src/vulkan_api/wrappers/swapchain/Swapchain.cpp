@@ -1,13 +1,38 @@
+#include <algorithm>
+#include <limits>
+
 #include "vulkan_api/utils/Structures.hpp"
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 
 
+static VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) noexcept
+{
+    if (capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)())
+    {
+        return capabilities.currentExtent;
+    }
+    else
+    {
+        VkExtent2D actualExtent = 
+        {
+            width,
+            height
+        };
+
+        actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+}
 
 
 Swapchain::Swapchain() noexcept:
     handle(nullptr),
-	format(0)
+	format(0),
+	m_width(0),
+	m_height(0)
 {
 
 }
@@ -16,15 +41,10 @@ Swapchain::Swapchain() noexcept:
 Swapchain::~Swapchain() = default;
 
 
-bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, VkSurfaceKHR surface) noexcept
+bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, VkSurfaceKHR surface, uint32_t width, uint32_t height) noexcept
 {
 	if(handle)
 		return true;
-
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-
-	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phisycalDevice, surface, &surfaceCapabilities) != VK_SUCCESS)
-		return false;
 
     auto swapChainSupport = vk::query_swapchain_support(phisycalDevice, surface);
 
@@ -32,6 +52,9 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 		return false;
 
 	format = static_cast<VkFormat>(swapChainSupport->getSurfaceFormat().format);
+	auto extent = choose_swap_extent(swapChainSupport->capabilities, width, height);
+	m_width = extent.width;
+	m_height = extent.height;
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {};
 	swapchainCreateInfo.sType			 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -39,7 +62,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 	swapchainCreateInfo.minImageCount	 = buffer_count;
 	swapchainCreateInfo.imageFormat		 = static_cast<VkFormat>(format);
 	swapchainCreateInfo.imageColorSpace	 = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-	swapchainCreateInfo.imageExtent		 = surfaceCapabilities.currentExtent;
+	swapchainCreateInfo.imageExtent		 = extent;
 	swapchainCreateInfo.imageArrayLayers = 1;
 	swapchainCreateInfo.imageUsage		 = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	swapchainCreateInfo.preTransform	 = swapChainSupport->capabilities.currentTransform;
