@@ -33,6 +33,7 @@
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
+#include "vulkan_api/wrappers/sync/SyncManager.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -83,7 +84,6 @@ private:
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) noexcept;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept;
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
-    void createSyncObjects() noexcept;
     void updateUniformBuffer(uint32_t currentImage) noexcept;
     void drawFrame() noexcept;
 
@@ -97,6 +97,7 @@ private:
     Swapchain         m_swapchain;
     GraphicsPipeline  m_pipeline;
     CommandBufferPool m_commandPool;
+    SyncManager       m_sync;
 
 
     VkImage textureImage;
@@ -115,11 +116,6 @@ private:
 
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
-
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    uint32_t currentFrame = 0;
 
     bool framebufferResized = false;
 };

@@ -74,6 +74,7 @@ bool Application::initVulkan() noexcept
     }
 
     if(!m_commandPool.create(m_logicalDevice)) return false;
+    if(!m_sync.create(m_logicalDevice.handle)) return false;
 
     
     createTextureImage();
@@ -84,7 +85,6 @@ bool Application::initVulkan() noexcept
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
-    createSyncObjects();
 
     return true;
 }
@@ -129,12 +129,7 @@ void Application::cleanup() noexcept
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(device, inFlightFences[i], nullptr);
-    }
+    m_sync.destroy(device);
 
     m_commandPool.destroy(device);
 
@@ -603,6 +598,8 @@ uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags 
 
 void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept
 {
+    auto currentFrame = m_sync.currentFrame;
+
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -732,33 +729,6 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 }
 
 
-void Application::createSyncObjects() noexcept
-{
-    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        auto device = m_logicalDevice.handle;
-
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
-        {
-            printf("failed to create synchronization objects for a frame!");
-        }
-    }
-}
-
-
 void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
@@ -782,12 +752,14 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 
 void Application::drawFrame() noexcept
 {
+    auto currentFrame = m_sync.currentFrame;
+
     auto device = m_logicalDevice.handle;
 
-    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &m_sync.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, m_sync.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -801,7 +773,7 @@ void Application::drawFrame() noexcept
 
     updateUniformBuffer(currentFrame);
 
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+    vkResetFences(device, 1, &m_sync.inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(m_commandPool.commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
     recordCommandBuffer(m_commandPool.commandBuffers[currentFrame], imageIndex);
@@ -810,14 +782,14 @@ void Application::drawFrame() noexcept
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = imageAvailableSemaphores.data() + currentFrame;
+    submitInfo.pWaitSemaphores = m_sync.imageAvailableSemaphores.data() + currentFrame;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandPool.commandBuffers[currentFrame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
+    submitInfo.pSignalSemaphores = &m_sync.renderFinishedSemaphores[currentFrame];
 
-    if (auto result = vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, inFlightFences[currentFrame]); result != VK_SUCCESS)
+    if (auto result = vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, m_sync.inFlightFences[currentFrame]); result != VK_SUCCESS)
     {
         printf("failed to submit draw command buffer!");
     }
@@ -825,19 +797,16 @@ void Application::drawFrame() noexcept
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = &renderFinishedSemaphores[currentFrame];
+    presentInfo.pWaitSemaphores    = &m_sync.renderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount     = 1;
     presentInfo.pSwapchains        = &m_swapchain.handle;
     presentInfo.pImageIndices      = &imageIndex;
 
     result = vkQueuePresentKHR(m_logicalDevice.queue, &presentInfo);
 
-    bool needResetSemaphoreIndex = false;
-
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
         framebufferResized = false;
-        needResetSemaphoreIndex = true;
         recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
@@ -845,7 +814,7 @@ void Application::drawFrame() noexcept
         printf("failed to present swap chain image!");
     }
 
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    m_sync.currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     Sleep(16);
 }

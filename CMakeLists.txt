@@ -38,6 +38,7 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/shader/ShaderModule.cpp
 	src/vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
+	src/vulkan_api/wrappers/sync/SyncManager.cpp
 	src/Application.cpp
 	src/main.cpp
 )
