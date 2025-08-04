@@ -42,19 +42,6 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 
-struct UniformBufferObject
-{
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
-
-// const std::array<uint16_t, 6> indices = 
-// {
-//     0, 1, 2, 2, 3, 0
-// };
-
 
 class Application
 {
@@ -71,12 +58,7 @@ private:
     void createUniformBuffers() noexcept;
     void createDescriptorPool() noexcept;
     void createDescriptorSets() noexcept;
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory) noexcept;
 
-    VkCommandBuffer beginSingleTimeCommands() noexcept;
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer) noexcept;
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) noexcept;
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept;
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
     void updateUniformBuffer(uint32_t currentImage) noexcept;
     void drawFrame() noexcept;

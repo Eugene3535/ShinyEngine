@@ -1,97 +1,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "vulkan_api/utils/Structures.hpp"
+#include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
-
-
-static uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, const VulkanApi& api) noexcept
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(api.physicalDevice, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-    {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-        {
-            return i;
-        }
-    }
-
-    return 0;
-}
-
-
-static void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const VulkanApi& api) noexcept
-{
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(api.logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-    {
-        printf("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(api.logicalDevice, buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, api);
-
-    if (vkAllocateMemory(api.logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-    {
-        printf("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(api.logicalDevice, buffer, bufferMemory, 0);
-}
-
-
-static VkCommandBuffer beginSingleTimeCommands(const VulkanApi& api) noexcept
-{
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = api.commandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(api.logicalDevice, &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-}
-
-
-static void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanApi& api) noexcept
-{
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(api.queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(api.queue);
-
-    vkFreeCommandBuffers(api.logicalDevice, api.commandPool, 1, &commandBuffer);
-}
 
 
 static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, const VulkanApi& api) noexcept
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(api);
+    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -138,13 +54,13 @@ static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout 
         0, nullptr,
         1, &barrier);
 
-    endSingleTimeCommands(commandBuffer, api);
+    vk::endSingleTimeCommands(commandBuffer, api);
 }
 
 
 static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, const VulkanApi& api) noexcept
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(api);
+    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -162,7 +78,7 @@ static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, ui
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    endSingleTimeCommands(commandBuffer, api);
+    vk::endSingleTimeCommands(commandBuffer, api);
 }
 
 
@@ -194,7 +110,7 @@ static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImag
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, api);
+    allocInfo.memoryTypeIndex = vk::findMemoryType(memRequirements.memoryTypeBits, properties, api);
 
     if (vkAllocateMemory(api.logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
     {
@@ -231,7 +147,7 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanApi& api) noexcep
     
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, api);
+    vk::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, api);
 
     void *data;
     vkMapMemory(api.logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
