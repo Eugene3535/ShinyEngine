@@ -36,6 +36,7 @@
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
+#include "vulkan_api/wrappers/uniform/UniformBufferHolder.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -55,14 +56,9 @@ private:
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
 
-    void createUniformBuffers() noexcept;
-    void createDescriptorPool() noexcept;
-    void createDescriptorSets() noexcept;
-
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
     void updateUniformBuffer(uint32_t currentImage) noexcept;
     void drawFrame() noexcept;
-
 
     GLFWwindow* window;
 
@@ -78,12 +74,7 @@ private:
     Texture2D m_texture;
     Mesh      m_mesh;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
-
-    VkDescriptorPool descriptorPool;
-    std::vector<VkDescriptorSet> descriptorSets;
+    UniformBufferHolder m_uniformBuffers;
 
     bool framebufferResized = false;
 };

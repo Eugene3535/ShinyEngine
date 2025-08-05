@@ -5,14 +5,6 @@
 #include "Application.hpp"
 
 
-struct UniformBufferObject
-{
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
-
 void Application::run() noexcept
 {
     initWindow();
@@ -27,17 +19,20 @@ void Application::run() noexcept
 
 void Application::initWindow() noexcept
 {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, static_cast<void*>(this));
-
-    glfwSetFramebufferSizeCallback(window, [](GLFWwindow *window, int width, int height)
+    if(glfwInit() == GLFW_TRUE)
     {
-        if(auto app = static_cast<Application*>(glfwGetWindowUserPointer(window)); app)
-            app->framebufferResized = true;
-    });
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        glfwSetWindowUserPointer(window, static_cast<void*>(this));
+
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *window, int width, int height)
+        {
+            if(auto app = static_cast<Application*>(glfwGetWindowUserPointer(window)); app)
+                app->framebufferResized = true;
+        });
+    }
+
 }
 
 
@@ -78,16 +73,15 @@ bool Application::initVulkan() noexcept
         m_physicalDevice.handle,
         m_logicalDevice.handle,
         m_logicalDevice.queue,
-        m_commandPool.handle
+        m_commandPool.handle,
+        m_pipeline.descriptorSetLayout,
+        &m_texture
     };
 
     if(!m_texture.loadFromFile("res/textures/container.jpg", api)) return false;
     if(!m_mesh.create(api)) return false;
 
-    createUniformBuffers();
-
-    createDescriptorPool();
-    createDescriptorSets();
+    if(!m_uniformBuffers.create(api)) return false;
 
     return true;
 }
@@ -112,13 +106,7 @@ void Application::cleanup() noexcept
     m_swapchain.destroy(device);
     m_pipeline.destroy(device);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-    }
-
-    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+    m_uniformBuffers.destroy(device);
 
     m_texture.destroy(device);
     m_mesh.destroy(device);
@@ -152,101 +140,6 @@ void Application::recreateSwapChain() noexcept
 
     m_swapchain.destroy(m_logicalDevice.handle);
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height);
-}
-
-
-void Application::createUniformBuffers() noexcept
-{
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VulkanApi api = 
-    {
-        m_physicalDevice.handle,
-        m_logicalDevice.handle,
-        m_logicalDevice.queue,
-        m_commandPool.handle
-    };
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i], api);
-        vkMapMemory(m_logicalDevice.handle, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-    }
-}
-
-
-void Application::createDescriptorPool() noexcept
-{
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-    if (vkCreateDescriptorPool(m_logicalDevice.handle, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-    {
-        printf("failed to create descriptor pool!");
-    }
-}
-
-
-void Application::createDescriptorSets() noexcept
-{
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_pipeline.descriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(m_logicalDevice.handle, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
-    {
-        printf("failed to allocate descriptor sets!");
-    }
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_texture.textureImageView;
-        imageInfo.sampler = m_texture.textureSampler;
-
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = descriptorSets[i];
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = descriptorSets[i];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(m_logicalDevice.handle, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    }
 }
 
 
@@ -340,7 +233,7 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     vkCmdBindIndexBuffer(commandBuffer, m_mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.layout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.layout, 0, 1, &m_uniformBuffers.descriptorSets[currentFrame], 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_mesh.getIndexCount()), 1, 0, 0, 0);
 
@@ -395,7 +288,7 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
     ubo.proj = glm::perspective(glm::radians(60.0f), width / (float)height, 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
-    memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    memcpy(m_uniformBuffers.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 
