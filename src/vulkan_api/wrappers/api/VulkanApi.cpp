@@ -120,7 +120,7 @@ VkResult VulkanApi::createInstance() noexcept
         .apiVersion         = VK_API_VERSION_1_4
     };
 
-    VkInstanceCreateInfo instanceCreateInfo = 
+    VkInstanceCreateInfo instanceInfo = 
     {
         .sType =                   VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext =                   nullptr,
@@ -133,10 +133,10 @@ VkResult VulkanApi::createInstance() noexcept
     };
 
 #ifdef DEBUG
-        instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        instanceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
+        instanceInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = 
+        VkDebugUtilsMessengerCreateInfoEXT debugInfo = 
         {
             .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .pNext           = nullptr,
@@ -152,10 +152,10 @@ VkResult VulkanApi::createInstance() noexcept
             .pUserData = nullptr
         };
 
-        instanceCreateInfo.pNext = static_cast<const void*>(&debugCreateInfo);
+        instanceInfo.pNext = static_cast<const void*>(&debugInfo);
 #endif // !DEBUG
 
-    return vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance);
+    return vkCreateInstance(&instanceInfo, nullptr, &m_instance);
 }
 
 
@@ -214,7 +214,7 @@ VkResult VulkanApi::createDevice() noexcept
     {
         const float queuePriority = 1.0f;
 
-    	const VkDeviceQueueCreateInfo queueCreateInfo = 
+    	const VkDeviceQueueCreateInfo queueInfo = 
         {
             .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .pNext            = nullptr,
@@ -251,13 +251,13 @@ VkResult VulkanApi::createDevice() noexcept
             .dynamicRendering = VK_TRUE
         };
 
-        VkDeviceCreateInfo deviceCreateInfo = 
+        VkDeviceCreateInfo deviceInfo = 
         {
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext                   = &dynamic_rendering_feature,
             .flags                   = 0,
             .queueCreateInfoCount    = 1,
-            .pQueueCreateInfos       = &queueCreateInfo,
+            .pQueueCreateInfos       = &queueInfo,
             .enabledLayerCount       = 0,
             .ppEnabledLayerNames     = nullptr,
             .enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size()),
@@ -265,11 +265,11 @@ VkResult VulkanApi::createDevice() noexcept
             .pEnabledFeatures        = &enabledFeatures
         };
 #ifdef DEBUG
-    	deviceCreateInfo.enabledLayerCount   = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-    	deviceCreateInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+    	deviceInfo.enabledLayerCount   = static_cast<uint32_t>(VALIDATION_LAYERS.size());
+    	deviceInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 #endif
 
-        if(vkCreateDevice(m_physicalDevice, &deviceCreateInfo, nullptr, &m_device) == VK_SUCCESS)
+        if(vkCreateDevice(m_physicalDevice, &deviceInfo, nullptr, &m_device) == VK_SUCCESS)
         {
             vkGetDeviceQueue(m_device, m_mainQueueFamilyIndex, 0, &m_queue);
 

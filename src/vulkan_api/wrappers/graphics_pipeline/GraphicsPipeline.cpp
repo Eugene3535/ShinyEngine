@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan_api/wrappers/shader/ShaderModule.hpp"
-#include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
+#include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 #include "vulkan_api/utils/Structures.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
@@ -13,7 +13,7 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
     descriptorSetLayout(nullptr),
     layout(nullptr),
     handle(nullptr),
-    m_swapchain(nullptr)
+    m_mainView(nullptr)
 {
 
 }
@@ -22,9 +22,9 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
 GraphicsPipeline::~GraphicsPipeline() = default;
 
 
-bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class ShaderModule> shaders, const Swapchain& swapchain) noexcept
+bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class ShaderModule> shaders, const MainView& view) noexcept
 {
-    m_swapchain = &swapchain;
+    m_mainView = &view;
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding            = 0;
@@ -141,11 +141,13 @@ bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class Shad
     if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
         return false;
 
+    const VkFormat format = m_mainView->getFormat();
+
     const VkPipelineRenderingCreateInfoKHR pipeline_rendering_create_info =
     {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
         .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(&swapchain.format)
+        .pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(&format)
     };
 
     VkGraphicsPipelineCreateInfo pipelineInfo = 
@@ -185,7 +187,7 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .image = m_swapchain->images[imageIndex],
+        .image = m_mainView->getImage(imageIndex),
         .subresourceRange = 
         {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -209,13 +211,13 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         &image_memory_barrier_begin // pImageMemoryBarriers
     );
 
-    VkExtent2D extent = { m_swapchain->m_width, m_swapchain->m_height };
+    VkExtent2D extent = m_mainView->getExtent();
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 
     const VkRenderingAttachmentInfoKHR color_attachment_info = 
     {
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView = m_swapchain->imageViews[imageIndex],
+        .imageView = m_mainView->getImageView(imageIndex),
         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -267,7 +269,7 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        .image = m_swapchain->images[imageIndex],
+        .image = m_mainView->getImage(imageIndex),
         .subresourceRange = 
         {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

@@ -1,5 +1,6 @@
 
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
 
@@ -50,13 +51,13 @@ bool Application::initVulkan() noexcept
 //  Common
     if(m_api.initialize() != VK_SUCCESS) return false;
 
-    auto instance = m_api.getInstance();
+    auto instance       = m_api.getInstance();
     auto physicalDevice = m_api.getPhysicalDevice();
-    auto device = m_api.getDevice();
+    auto device         = m_api.getDevice();
 
-//  Surface
-    if(!m_surface.create(instance, window)) return false;
-    if(!m_swapchain.create(physicalDevice, device, m_surface.handle, width, height)) return false;
+//  Main View
+    if(m_mainView.create(m_api, reinterpret_cast<uint64_t>(glfwGetWin32Window(window))) != VK_SUCCESS) 
+        return false;
     
     {// Pipeline
         std::array<ShaderModule, 2> shaders;
@@ -67,7 +68,7 @@ bool Application::initVulkan() noexcept
         if(!shaders[1].loadFromFile(device, { "res/shaders/fragment_shader.spv" }))
             return false;
 
-        if(!m_pipeline.create(device, { shaders }, m_swapchain)) 
+        if(!m_pipeline.create(device, { shaders }, m_mainView)) 
             return false;
 
         shaders[0].destroy(device);
@@ -112,8 +113,8 @@ void Application::cleanup() noexcept
 {
     auto device = m_api.getDevice();
 
-    m_swapchain.destroy(device);
-    m_surface.destroy(m_api.getInstance());
+    m_mainView.destroy();
+
     m_pipeline.destroy(device);
 
     m_uniformBuffers.destroy(device);
@@ -140,8 +141,7 @@ void Application::recreateSwapChain() noexcept
 
     vkDeviceWaitIdle(device);
 
-    m_swapchain.destroy(device);
-    m_swapchain.create(m_api.getPhysicalDevice(), device, m_surface.handle, width, height);
+    m_mainView.recreate();
 }
 
 
@@ -171,7 +171,7 @@ void Application::drawFrame() noexcept
     vkWaitForFences(device, 1, &m_sync.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, m_sync.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, m_mainView.getSwapchain(), UINT64_MAX, m_sync.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -214,7 +214,7 @@ void Application::drawFrame() noexcept
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &m_sync.renderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount     = 1;
-    presentInfo.pSwapchains        = &m_swapchain.handle;
+    presentInfo.pSwapchains        = &m_mainView.getSwapchain();
     presentInfo.pImageIndices      = &imageIndex;
 
     result = vkQueuePresentKHR(queue, &presentInfo);

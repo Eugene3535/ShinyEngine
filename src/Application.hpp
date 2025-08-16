@@ -4,9 +4,7 @@
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/utils/Constants.hpp"
 
-#include "vulkan_api/wrappers/api/VulkanApi.hpp"
-#include "vulkan_api/wrappers/surface/Surface.hpp"
-#include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
+#include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
@@ -33,9 +31,7 @@ private:
     struct GLFWwindow* window;
 
     VulkanApi m_api;
-
-    Surface           m_surface;
-    Swapchain         m_swapchain;
+    MainView  m_mainView;
     
     GraphicsPipeline  m_pipeline;
     CommandBufferPool m_commandPool;

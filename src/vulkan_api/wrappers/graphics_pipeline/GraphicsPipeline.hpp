@@ -10,7 +10,7 @@ public:
     GraphicsPipeline() noexcept;
     ~GraphicsPipeline();
 
-    bool create(struct VkDevice_T* logicalDevice, std::span<const class ShaderModule> shaders, const class Swapchain& swapchain) noexcept;
+    bool create(struct VkDevice_T* logicalDevice, std::span<const class ShaderModule> shaders, const class MainView& view) noexcept;
     bool writeCommandBuffer(struct VkCommandBuffer_T* commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const class Mesh& mesh, struct VkDescriptorSet_T* descriptorSet) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
@@ -19,7 +19,7 @@ public:
     struct VkPipeline_T*            handle;
 
 private:
-    const class Swapchain* m_swapchain;
+    const class MainView* m_mainView;
 };
 
 #endif // !GRAPHICS_PIPELINE_HPP

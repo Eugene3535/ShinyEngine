@@ -1,0 +1,181 @@
+#include "vulkan_api/utils/Helpers.hpp"
+#include "vulkan_api/wrappers/view/MainView.hpp"
+
+
+MainView::MainView() noexcept:
+    m_instance(VK_NULL_HANDLE),
+    m_phisycalDevice(VK_NULL_HANDLE),
+    m_device(VK_NULL_HANDLE),
+    m_surface(VK_NULL_HANDLE),
+    m_swapchain(VK_NULL_HANDLE),
+    m_format(VK_FORMAT_UNDEFINED),
+    m_extent({})
+{
+
+}
+
+
+MainView::~MainView() = default;
+
+
+VkResult MainView::create(VulkanApi& api, uint64_t windowHandle) noexcept
+{
+    m_instance       = api.getInstance();
+    m_phisycalDevice = api.getPhysicalDevice();
+    m_device         = api.getDevice();
+
+    VkWin32SurfaceCreateInfoKHR surfaceInfo = 
+    {
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .hinstance = GetModuleHandle(nullptr),
+        .hwnd = reinterpret_cast<HWND>(windowHandle)
+    };
+
+    if(vkCreateWin32SurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
+        return recreate();
+
+    return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+
+VkResult MainView::recreate() noexcept
+{
+    auto choose_swap_extent = [](const VkSurfaceCapabilitiesKHR& capabilities, const VkExtent2D& currentExtent) -> VkExtent2D
+    {
+        if (capabilities.currentExtent.width != UINT_MAX)
+        {
+            return capabilities.currentExtent;
+        }
+        else
+        {
+            VkExtent2D actualExtent = currentExtent;
+            actualExtent.width  = glm::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            actualExtent.height = glm::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+            return actualExtent;
+        }
+    };
+
+    if(m_instance && m_phisycalDevice && m_device && m_surface)
+    {
+        if(m_swapchain)
+        {
+            for (auto imageView : m_imageViews)
+            	vkDestroyImageView(m_device, imageView, nullptr);
+
+            vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+            m_swapchain = nullptr;
+        }
+
+        auto swapChainSupport = vk::query_swapchain_support(m_phisycalDevice, m_surface);
+
+        if (buffer_count > swapChainSupport->capabilities.maxImageCount)
+            return VK_ERROR_INITIALIZATION_FAILED;
+
+        m_format = swapChainSupport->getSurfaceFormat().format;
+        m_extent = choose_swap_extent(swapChainSupport->capabilities, m_extent);
+
+        const VkSwapchainCreateInfoKHR swapchainInfo = 
+        {
+            .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .pNext                 = VK_NULL_HANDLE,
+            .flags                 = 0,
+            .surface               = m_surface,
+            .minImageCount         = buffer_count,
+            .imageFormat           = m_format,
+            .imageColorSpace       = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+            .imageExtent           = m_extent,
+            .imageArrayLayers      = 1,
+            .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            .imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices   = nullptr,
+            .preTransform          = swapChainSupport->capabilities.currentTransform,
+            .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode           = swapChainSupport->getPresentMode(),
+            .clipped               = VK_TRUE,
+            .oldSwapchain          = m_swapchain
+        };
+
+        if (vkCreateSwapchainKHR(m_device, &swapchainInfo, nullptr, &m_swapchain) == VK_SUCCESS)
+        {
+            uint32_t imageCount = buffer_count;
+
+            if (vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_images.data()) == VK_SUCCESS)
+            {
+                for (size_t i = 0; i < m_images.size(); ++i)
+                {
+                    VkImageViewCreateInfo viewInfo = 
+                    {
+                        .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                        .image            = m_images[i],
+                        .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+                        .format           = m_format,
+                        .subresourceRange = 
+                        {
+                            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                            .baseMipLevel   = 0,
+                            .levelCount     = 1,
+                            .baseArrayLayer = 0,
+                            .layerCount     = 1
+                        }
+                    };
+
+                    if (vkCreateImageView(m_device, &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
+                        return VK_ERROR_INITIALIZATION_FAILED;
+                }
+
+                return VK_SUCCESS;
+            }
+        }
+    }
+
+    return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+
+void MainView::destroy() noexcept
+{
+    if(m_swapchain)
+	{
+		for (auto imageView : m_imageViews)
+        	vkDestroyImageView(m_device, imageView, nullptr);
+
+		vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+	}
+
+    if(m_surface)
+        vkDestroySurfaceKHR(m_instance, m_surface, VK_NULL_HANDLE);
+}
+
+
+VkSwapchainKHR& MainView::getSwapchain() noexcept
+{
+    return m_swapchain;
+}
+
+
+VkFormat MainView::getFormat() const noexcept
+{
+    return m_format;
+}
+
+
+const VkExtent2D& MainView::getExtent() const noexcept
+{
+    return m_extent;
+}
+
+
+VkImage MainView::getImage(uint32_t index) const noexcept
+{
+    return m_images[index];
+}
+
+
+VkImageView MainView::getImageView(uint32_t index) const noexcept
+{
+    return m_imageViews[index];
+}

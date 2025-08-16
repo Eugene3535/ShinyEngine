@@ -31,8 +31,7 @@ set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
 	src/vulkan_api/utils/Structures.cpp
 	src/vulkan_api/wrappers/api/VulkanApi.cpp
-	src/vulkan_api/wrappers/surface/Surface.cpp
-	src/vulkan_api/wrappers/swapchain/Swapchain.cpp
+	src/vulkan_api/wrappers/view/MainView.cpp
 	src/vulkan_api/wrappers/shader/ShaderModule.cpp
 	src/vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
