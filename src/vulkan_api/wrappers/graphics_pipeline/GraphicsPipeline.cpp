@@ -22,9 +22,10 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
 GraphicsPipeline::~GraphicsPipeline() = default;
 
 
-bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class ShaderModule> shaders, const MainView& view) noexcept
+bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule> shaders) noexcept
 {
     m_mainView = &view;
+    auto device = view.getVulkanApi()->getDevice();
 
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding            = 0;
@@ -51,7 +52,7 @@ bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class Shad
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings    = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
         return false;
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -138,7 +139,7 @@ bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class Shad
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
         return false;
 
     const VkFormat format = m_mainView->getFormat();
@@ -169,7 +170,7 @@ bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class Shad
         .basePipelineHandle = VK_NULL_HANDLE
     };
 
-    return (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &handle) == VK_SUCCESS);
+    return (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &handle) == VK_SUCCESS);
 }
 
 
@@ -297,9 +298,14 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
 }
 
 
-void GraphicsPipeline::destroy(VkDevice logicalDevice) noexcept
+void GraphicsPipeline::destroy() noexcept
 {
-    vkDestroyPipeline(logicalDevice, handle, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, layout, nullptr);
-    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+    if(m_mainView)
+    {
+        auto device = m_mainView->getVulkanApi()->getDevice();
+
+        vkDestroyPipeline(device, handle, nullptr);
+        vkDestroyPipelineLayout(device, layout, nullptr);
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+    }
 }

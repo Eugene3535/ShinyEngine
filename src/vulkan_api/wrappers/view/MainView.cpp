@@ -68,9 +68,7 @@ namespace
 
 
 MainView::MainView() noexcept:
-    m_instance(VK_NULL_HANDLE),
-    m_phisycalDevice(VK_NULL_HANDLE),
-    m_device(VK_NULL_HANDLE),
+    m_api(nullptr),
     m_surface(VK_NULL_HANDLE),
     m_swapchain(VK_NULL_HANDLE),
     m_format(VK_FORMAT_UNDEFINED),
@@ -85,9 +83,7 @@ MainView::~MainView() = default;
 
 VkResult MainView::create(VulkanApi& api, uint64_t windowHandle) noexcept
 {
-    m_instance       = api.getInstance();
-    m_phisycalDevice = api.getPhysicalDevice();
-    m_device         = api.getDevice();
+    m_api = &api;
 
     VkWin32SurfaceCreateInfoKHR surfaceInfo = 
     {
@@ -123,18 +119,21 @@ VkResult MainView::recreate() noexcept
         }
     };
 
-    if(m_instance && m_phisycalDevice && m_device && m_surface)
+    if(m_api && m_surface)
     {
+        auto phisycalDevice = m_api->getPhysicalDevice();
+        auto device = m_api->getDevice();
+
         if(m_swapchain)
         {
             for (auto imageView : m_imageViews)
-            	vkDestroyImageView(m_device, imageView, nullptr);
+            	vkDestroyImageView(device, imageView, nullptr);
 
-            vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+            vkDestroySwapchainKHR(device, m_swapchain, nullptr);
             m_swapchain = nullptr;
         }
 
-        auto swapChainSupport = query_swapchain_support(m_phisycalDevice, m_surface);
+        auto swapChainSupport = query_swapchain_support(phisycalDevice, m_surface);
 
         if (buffer_count > swapChainSupport->capabilities.maxImageCount)
             return VK_ERROR_INITIALIZATION_FAILED;
@@ -164,11 +163,11 @@ VkResult MainView::recreate() noexcept
             .oldSwapchain          = m_swapchain
         };
 
-        if (vkCreateSwapchainKHR(m_device, &swapchainInfo, nullptr, &m_swapchain) == VK_SUCCESS)
+        if (vkCreateSwapchainKHR(device, &swapchainInfo, nullptr, &m_swapchain) == VK_SUCCESS)
         {
             uint32_t imageCount = buffer_count;
 
-            if (vkGetSwapchainImagesKHR(m_device, m_swapchain, &imageCount, m_images.data()) == VK_SUCCESS)
+            if (vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, m_images.data()) == VK_SUCCESS)
             {
                 for (size_t i = 0; i < m_images.size(); ++i)
                 {
@@ -188,7 +187,7 @@ VkResult MainView::recreate() noexcept
                         }
                     };
 
-                    if (vkCreateImageView(m_device, &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
+                    if (vkCreateImageView(device, &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
                         return VK_ERROR_INITIALIZATION_FAILED;
                 }
 
@@ -203,16 +202,22 @@ VkResult MainView::recreate() noexcept
 
 void MainView::destroy() noexcept
 {
-    if(m_swapchain)
-	{
-		for (auto imageView : m_imageViews)
-        	vkDestroyImageView(m_device, imageView, nullptr);
+    if(m_api)
+    {
+        auto instance = m_api->getInstance();
+        auto device = m_api->getDevice();
 
-		vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
-	}
+        if(m_swapchain)
+        {
+            for (auto imageView : m_imageViews)
+                vkDestroyImageView(device, imageView, nullptr);
 
-    if(m_surface)
-        vkDestroySurfaceKHR(m_instance, m_surface, VK_NULL_HANDLE);
+            vkDestroySwapchainKHR(device, m_swapchain, nullptr);
+        }
+
+        if(m_surface)
+            vkDestroySurfaceKHR(instance, m_surface, VK_NULL_HANDLE);
+    }
 }
 
 
@@ -243,4 +248,10 @@ VkImage MainView::getImage(uint32_t index) const noexcept
 VkImageView MainView::getImageView(uint32_t index) const noexcept
 {
     return m_imageViews[index];
+}
+
+
+VulkanApi* MainView::getVulkanApi() const noexcept
+{
+    return m_api;
 }

@@ -25,10 +25,10 @@ public:
     VkImage     getImage(uint32_t index)     const noexcept;
     VkImageView getImageView(uint32_t index) const noexcept;
 
+    VulkanApi* getVulkanApi() const noexcept;
+
 private:
-    VkInstance       m_instance;
-    VkPhysicalDevice m_phisycalDevice;
-    VkDevice         m_device;
+    VulkanApi* m_api;
 
     VkSurfaceKHR   m_surface;
     VkSwapchainKHR m_swapchain;

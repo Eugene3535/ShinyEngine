@@ -72,7 +72,7 @@ bool Application::initVulkan() noexcept
         if(!shaders[1].loadFromFile(device, { "res/shaders/fragment_shader.spv" }))
             return false;
 
-        if(!m_pipeline.create(device, { shaders }, m_mainView)) 
+        if(!m_pipeline.create(m_mainView, shaders)) 
             return false;
 
         shaders[0].destroy(device);
@@ -119,7 +119,7 @@ void Application::cleanup() noexcept
 
     m_mainView.destroy();
 
-    m_pipeline.destroy(device);
+    m_pipeline.destroy();
 
     m_uniformBuffers.destroy(device);
 
@@ -155,10 +155,13 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
     glfwGetFramebufferSize(window, &width, &height);
     VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 
-    UniformBufferObject ubo{};
-    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
-    ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    ubo.proj = glm::perspective(glm::radians(60.0f), width / (float)height, 0.1f, 100.0f);
+    UniformBufferObject ubo = 
+    {
+        .model = glm::translate(glm::mat4(1.0f), glm::vec3(0)),
+        .view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)),
+        .proj = glm::perspective(glm::radians(60.0f), width / (float)height, 0.1f, 100.0f)
+    };
+
     ubo.proj[1][1] *= -1;
 
     memcpy(m_uniformBuffers.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -170,7 +173,7 @@ void Application::drawFrame() noexcept
     auto currentFrame = m_sync.currentFrame;
 
     auto device = m_api.getDevice();
-    auto queue =m_api.getQueue();
+    auto queue  = m_api.getQueue();
 
     vkWaitForFences(device, 1, &m_sync.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 

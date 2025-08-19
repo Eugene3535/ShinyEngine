@@ -10,9 +10,9 @@ public:
     GraphicsPipeline() noexcept;
     ~GraphicsPipeline();
 
-    bool create(struct VkDevice_T* logicalDevice, std::span<const class ShaderModule> shaders, const class MainView& view) noexcept;
+    bool create(const class MainView& view, std::span<const class ShaderModule> shaders) noexcept;
     bool writeCommandBuffer(struct VkCommandBuffer_T* commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const class Mesh& mesh, struct VkDescriptorSet_T* descriptorSet) noexcept;
-    void destroy(struct VkDevice_T* logicalDevice) noexcept;
+    void destroy() noexcept;
 
     struct VkDescriptorSetLayout_T* descriptorSetLayout;
     struct VkPipelineLayout_T*      layout;
