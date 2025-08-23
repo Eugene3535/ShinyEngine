@@ -1,6 +1,7 @@
 #include <array>
 
-#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderModule.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 #include "vulkan_api/utils/Structures.hpp"
@@ -20,7 +21,7 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
 GraphicsPipeline::~GraphicsPipeline() = default;
 
 
-bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule> shaders) noexcept
+bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage> shaders) noexcept
 {
     destroy();
 
@@ -42,15 +43,15 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule
         shaders[1].getInfo()
     };
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::array<const VertexInputState::Attribute, 3> attributes =
+    {
+        VertexInputState::Attribute::Float2,
+        VertexInputState::Attribute::Float3,
+        VertexInputState::Attribute::Float2
+    };
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    auto vertex_input_state = std::make_unique<VertexInputState>(attributes);
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = vertex_input_state->getinfo();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -68,8 +69,8 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
     VkPipelineMultisampleStateCreateInfo multisampling = {};

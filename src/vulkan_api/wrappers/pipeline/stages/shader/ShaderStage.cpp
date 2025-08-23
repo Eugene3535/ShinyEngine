@@ -3,10 +3,10 @@
 
 #include <vulkan/vulkan.h>
 
-#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderModule.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
 
 
-ShaderModule::ShaderModule() noexcept:
+ShaderStage::ShaderStage() noexcept:
     m_handle(nullptr),
     m_stage(VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM)
 {
@@ -14,7 +14,7 @@ ShaderModule::ShaderModule() noexcept:
 }
 
 
-VkResult ShaderModule::loadFromFile(VkDevice device, VkShaderStageFlagBits stage, const std::filesystem::path& filepath) noexcept
+VkResult ShaderStage::loadFromFile(VkDevice device, VkShaderStageFlagBits stage, const std::filesystem::path& filepath) noexcept
 {
     if (m_handle)
         destroy(device);
@@ -52,7 +52,7 @@ VkResult ShaderModule::loadFromFile(VkDevice device, VkShaderStageFlagBits stage
 }
 
 
-void ShaderModule::destroy(VkDevice device) noexcept
+void ShaderStage::destroy(VkDevice device) noexcept
 {
     if (m_handle)
     {
@@ -63,7 +63,7 @@ void ShaderModule::destroy(VkDevice device) noexcept
 }
 
 
-VkPipelineShaderStageCreateInfo ShaderModule::getInfo() const noexcept
+VkPipelineShaderStageCreateInfo ShaderStage::getInfo() const noexcept
 {
     if(m_handle && m_stage != VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM)
     {

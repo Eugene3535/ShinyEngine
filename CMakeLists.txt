@@ -29,10 +29,10 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
-	src/vulkan_api/utils/Structures.cpp
 	src/vulkan_api/wrappers/api/VulkanApi.cpp
 	src/vulkan_api/wrappers/view/MainView.cpp
-	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderModule.cpp
+	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.cpp
+	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.cpp
 	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
 	src/vulkan_api/wrappers/sync/SyncManager.cpp

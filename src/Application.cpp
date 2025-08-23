@@ -4,7 +4,7 @@
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderModule.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
 #include "Application.hpp"
 
 
@@ -63,7 +63,7 @@ bool Application::initVulkan() noexcept
         return false;
     
     {// Pipeline
-        std::array<ShaderModule, 2> shaders;
+        std::array<ShaderStage, 2> shaders;
 
         if(shaders[0].loadFromFile(device, VK_SHADER_STAGE_VERTEX_BIT, "res/shaders/vertex_shader.spv") != VK_SUCCESS)
             return false;

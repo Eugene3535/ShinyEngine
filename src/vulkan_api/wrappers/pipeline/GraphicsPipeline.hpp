@@ -10,7 +10,7 @@ public:
     GraphicsPipeline() noexcept;
     ~GraphicsPipeline();
 
-    bool create(const class MainView& view, std::span<const class ShaderModule> shaders) noexcept;
+    bool create(const class MainView& view, std::span<const class ShaderStage> shaders) noexcept;
     bool writeCommandBuffer(struct VkCommandBuffer_T* commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const class Mesh& mesh, struct VkDescriptorSet_T* descriptorSet) noexcept;
     void destroy() noexcept;
 

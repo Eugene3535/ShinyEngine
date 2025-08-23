@@ -18,9 +18,6 @@ struct Vertex
     glm::vec2 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() noexcept;
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() noexcept;
 };
 
 

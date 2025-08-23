@@ -6,10 +6,10 @@
 #include <vulkan/vulkan.h>
 
 
-class ShaderModule
+class ShaderStage
 {
 public:
-    ShaderModule() noexcept;
+    ShaderStage() noexcept;
 
     VkResult loadFromFile(VkDevice device, VkShaderStageFlagBits stage, const std::filesystem::path& filepath) noexcept;
     void destroy(VkDevice device) noexcept;
