@@ -93,16 +93,13 @@ namespace
 
 
 GraphicsPipeline::GraphicsPipeline() noexcept:
-    descriptorSetLayout(nullptr),
-    layout(nullptr),
-    handle(nullptr),
+    m_descriptorSetLayout(nullptr),
+    m_layout(nullptr),
+    m_pipeline(nullptr),
     m_mainView(nullptr)
 {
 
 }
-
-
-GraphicsPipeline::~GraphicsPipeline() = default;
 
 
 bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage> shaders) noexcept
@@ -169,7 +166,6 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
         .pDynamicStates    = dynamicStates.data()
     };
 
-
     {// Descriptor Set Layout
         const std::array<VkDescriptorSetLayoutBinding, 2> bindings = 
         { 
@@ -197,10 +193,10 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
             .pNext        = nullptr,
             .flags        = 0,
             .bindingCount = static_cast<uint32_t>(bindings.size()),
-            .pBindings    = bindings.data(),
+            .pBindings    = bindings.data()
         };
 
-        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
             return false;
     }
 
@@ -210,12 +206,12 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
         .pNext                  = nullptr,
         .flags                  = 0,
         .setLayoutCount         = 1,
-        .pSetLayouts            = &descriptorSetLayout,
+        .pSetLayouts            = &m_descriptorSetLayout,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges    = nullptr
     };
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
         return false;
 
     VkGraphicsPipelineCreateInfo pipelineInfo = 
@@ -234,15 +230,33 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
         .pDepthStencilState  = nullptr,
         .pColorBlendState    = &colorBlending,
         .pDynamicState       = &dynamicState,
-        .layout              = layout,
+        .layout              = m_layout,
         .renderPass          = nullptr,
         .subpass             = 0,
         .basePipelineHandle  = nullptr,
         .basePipelineIndex   = 0
     };
 
-    return (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &handle) == VK_SUCCESS);
+    return (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) == VK_SUCCESS);
 }
+
+
+void GraphicsPipeline::destroy() noexcept
+{
+    if(m_mainView)
+    {
+        auto device = m_mainView->getVulkanApi()->getDevice();
+
+        vkDestroyPipeline(device, m_pipeline, nullptr);
+        vkDestroyPipelineLayout(device, m_layout, nullptr);
+        vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);
+    }
+}
+
+
+
+
+
 
 
 bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept
@@ -308,7 +322,7 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     };
 
     vkCmdBeginRendering(commandBuffer, &render_info);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, handle);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -330,7 +344,7 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_layout, 0, 1, &descriptorSet, 0, nullptr);
     vkCmdDrawIndexed(commandBuffer, mesh.getIndexCount(), 1, 0, 0, 0);
 
     vkCmdEndRendering(commandBuffer);
@@ -366,17 +380,4 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     );
 
     return (vkEndCommandBuffer(commandBuffer) == VK_SUCCESS);
-}
-
-
-void GraphicsPipeline::destroy() noexcept
-{
-    if(m_mainView)
-    {
-        auto device = m_mainView->getVulkanApi()->getDevice();
-
-        vkDestroyPipeline(device, handle, nullptr);
-        vkDestroyPipelineLayout(device, layout, nullptr);
-        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-    }
 }

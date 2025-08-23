@@ -36,10 +36,15 @@ void Application::initWindow() noexcept
         window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
         glfwSetWindowUserPointer(window, static_cast<void*>(this));
 
-        glfwSetFramebufferSizeCallback(window, [](GLFWwindow *window, int width, int height)
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height)
         {
-            if(auto app = static_cast<Application*>(glfwGetWindowUserPointer(window)); app)
+            if(auto app = static_cast<Application*>(glfwGetWindowUserPointer(window)))
+            {
+                app->m_width = width;
+                app->m_height = height;
                 app->framebufferResized = true;
+            }
+                
         });
     }
 }
@@ -47,8 +52,7 @@ void Application::initWindow() noexcept
 
 bool Application::initVulkan() noexcept
 {
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
+    glfwGetFramebufferSize(window, &m_width, &m_height);
 
 //  Common
     if(m_api.initialize() != VK_SUCCESS) 
@@ -78,23 +82,30 @@ bool Application::initVulkan() noexcept
         shaders[1].destroy(device);
     }
 
-    if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex())) return false;
-    if(!m_sync.create(device)) return false;
+    if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex()))
+        return false;
 
-    VulkanData api = 
+    if(!m_sync.create(device)) 
+        return false;
+
+    VulkanData data = 
     {
         physicalDevice,
         device,
         m_api.getQueue(),
         m_commandPool.handle,
-        m_pipeline.descriptorSetLayout,
+        m_pipeline.m_descriptorSetLayout,
         &m_texture
     };
 
-    if(!m_texture.loadFromFile("res/textures/container.jpg", api)) return false;
-    if(!m_mesh.create(api)) return false;
+    if(!m_texture.loadFromFile("res/textures/container.jpg", data))
+        return false;
 
-    if(!m_uniformBuffers.create(api)) return false;
+    if(!m_mesh.create(data)) 
+        return false;
+
+    if(!m_uniformBuffers.create(data)) 
+        return false;
 
     return true;
 }
@@ -150,15 +161,11 @@ void Application::recreateSwapChain() noexcept
 
 void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 {
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
-
     UniformBufferObject ubo = 
     {
         .model = glm::translate(glm::mat4(1.0f), glm::vec3(0)),
         .view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f)),
-        .proj = glm::perspective(glm::radians(60.0f), width / (float)height, 0.1f, 100.0f)
+        .proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f)
     };
 
     ubo.proj[1][1] *= -1;
@@ -170,7 +177,6 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 void Application::drawFrame() noexcept
 {
     auto currentFrame = m_sync.currentFrame;
-
     auto device = m_api.getDevice();
     auto queue  = m_api.getQueue();
 

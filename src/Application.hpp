@@ -41,6 +41,8 @@ private:
     UniformBufferHolder m_uniformBuffers;
 
     bool framebufferResized = false;
+    int32_t m_width = 0;
+    int32_t m_height = 0;
 };
 
 #endif // !APPLICATION_HPP
