@@ -3,6 +3,8 @@
 
 #include <span>
 
+#include <vulkan/vulkan.h>
+
 
 class GraphicsPipeline
 {
@@ -12,13 +14,15 @@ public:
     bool create(const class MainView& view, std::span<const class ShaderStage> shaders) noexcept;
     void destroy() noexcept;
 
-    bool writeCommandBuffer(struct VkCommandBuffer_T* commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const class Mesh& mesh, struct VkDescriptorSet_T* descriptorSet) noexcept;
+    VkDescriptorSetLayout getDescriptorSetLayout() const noexcept;
+    VkPipelineLayout      getLayout() const noexcept;
+    VkPipeline            getHandle() const noexcept;
 
-//private:
-    struct VkDescriptorSetLayout_T* m_descriptorSetLayout;
-    struct VkPipelineLayout_T*      m_layout;
-    struct VkPipeline_T*            m_pipeline;
-    const class MainView*           m_mainView;
+private:
+    VkDescriptorSetLayout m_descriptorSetLayout;
+    VkPipelineLayout      m_layout;
+    VkPipeline            m_pipeline;
+    const class MainView* m_mainView;
 };
 
 #endif // !GRAPHICS_PIPELINE_HPP

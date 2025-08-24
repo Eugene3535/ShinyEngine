@@ -24,6 +24,7 @@ private:
     void recreateSwapChain() noexcept;
 
     void updateUniformBuffer(uint32_t currentImage) noexcept;
+    bool writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
 
     struct GLFWwindow* window;
