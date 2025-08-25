@@ -1,6 +1,7 @@
 #include <vector>
 #include <unordered_set>
 #include <string>
+#include <cstring>
 #include <cstdio>
 
 #include "vulkan_api/utils/Helpers.hpp"

@@ -1,4 +1,6 @@
 
+#include <cstring>
+
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
@@ -242,6 +244,8 @@ void Application::drawFrame() noexcept
     }
 
     m_sync.currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
+    
+#ifdef _WIN32
     Sleep(16);
+#endif
 }
