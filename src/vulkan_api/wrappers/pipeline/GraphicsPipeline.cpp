@@ -96,8 +96,7 @@ namespace
 GraphicsPipeline::GraphicsPipeline() noexcept:
     m_descriptorSetLayout(nullptr),
     m_layout(nullptr),
-    m_pipeline(nullptr),
-    m_mainView(nullptr)
+    m_pipeline(nullptr)
 {
 
 }
@@ -105,10 +104,8 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
 
 bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage> shaders) noexcept
 {
-    destroy();
-
-    m_mainView = &view;
     auto device = view.getVulkanApi()->getDevice();
+    destroy(device);
 
     const VkFormat format = view.getFormat();
 
@@ -219,12 +216,10 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
 }
 
 
-void GraphicsPipeline::destroy() noexcept
+void GraphicsPipeline::destroy(VkDevice device) noexcept
 {
-    if(m_mainView)
+    if(m_pipeline)
     {
-        auto device = m_mainView->getVulkanApi()->getDevice();
-
         vkDestroyPipeline(device, m_pipeline, nullptr);
         vkDestroyPipelineLayout(device, m_layout, nullptr);
         vkDestroyDescriptorSetLayout(device, m_descriptorSetLayout, nullptr);

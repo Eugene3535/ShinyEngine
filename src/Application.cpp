@@ -129,7 +129,7 @@ void Application::cleanup() noexcept
 
     m_mainView.destroy();
 
-    m_pipeline.destroy();
+    m_pipeline.destroy(device);
 
     m_uniformBuffers.destroy(device);
 
