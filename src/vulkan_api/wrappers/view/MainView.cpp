@@ -88,6 +88,7 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
 {
     m_api = &api;
 
+#ifdef _WIN32
     const VkWin32SurfaceCreateInfoKHR surfaceInfo = 
     {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -99,6 +100,26 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
 
     if(vkCreateWin32SurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
         return recreate();
+#endif
+
+#ifdef __linux__
+    xcb_connection_t* connection = xcb_connect(nullptr, nullptr);
+
+    if (xcb_connection_has_error(connection))
+        return VK_ERROR_INITIALIZATION_FAILED;
+
+    const VkXcbSurfaceCreateInfoKHR surfaceInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .connection = connection,
+        .window = static_cast<xcb_window_t>(glfwGetX11Window(window))
+    };
+
+    if (vkCreateXcbSurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
+        return recreate();
+#endif
 
     return VK_ERROR_INITIALIZATION_FAILED;
 }

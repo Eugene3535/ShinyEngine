@@ -55,10 +55,11 @@ compile_shaders(${CMAKE_SOURCE_DIR}/src/shaders ${CMAKE_BINARY_DIR}/shaders)
 add_compile_definitions(DEBUG=$<CONFIG:Debug>)
 
 if(WIN32)
-	add_compile_definitions(
-		VK_USE_PLATFORM_WIN32_KHR
-		GLFW_EXPOSE_NATIVE_WIN32
-	)
+	add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR GLFW_EXPOSE_NATIVE_WIN32)
+endif()
+
+if(UNIX)
+	add_compile_definitions(VK_USE_PLATFORM_XCB_KHR GLFW_EXPOSE_NATIVE_X11)
 endif()
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
@@ -74,7 +75,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} glfw glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES} glfw glm xcb)
+
+if(UNIX)
+	target_link_libraries(${PROJECT_NAME} PRIVATE xcb)
+endif()
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res     $<TARGET_FILE_DIR:${PROJECT_NAME}>/res

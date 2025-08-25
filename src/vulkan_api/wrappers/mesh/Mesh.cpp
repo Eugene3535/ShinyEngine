@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 
