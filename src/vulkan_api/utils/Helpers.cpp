@@ -1,6 +1,5 @@
 #include <vector>
 
-#include "vulkan_api/utils/Structures.hpp"
 #include "vulkan_api/utils/Helpers.hpp"
 
 

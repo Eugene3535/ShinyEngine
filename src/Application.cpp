@@ -77,7 +77,30 @@ bool Application::initVulkan() noexcept
         if(shaders[1].loadFromFile(device, VK_SHADER_STAGE_FRAGMENT_BIT, "res/shaders/fragment_shader.spv") != VK_SUCCESS)
             return false;
 
-        if(!m_pipeline.create(m_mainView, shaders)) 
+        std::array<const VertexInputState::Attribute, 3> attributes =
+        {
+            VertexInputState::Attribute::Float2,
+            VertexInputState::Attribute::Float3,
+            VertexInputState::Attribute::Float2
+        };
+
+        DescriptorSetLayout uniformDescriptors;
+        uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+        uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        GraphicsPipeline::State state;
+
+        state.setupShaderStages(shaders)->
+            setupVertexInput(attributes)->
+                setupInputAssembler(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)->
+                    setupViewport()->
+                        setupRasterization(VK_POLYGON_MODE_FILL)->
+                            setupMultisampling()->
+                                setupColorBlending(VK_FALSE)->
+                                    setupDescriptorSetLayout(uniformDescriptors);
+
+
+        if(m_pipeline.create(m_mainView, state) != VK_SUCCESS) 
             return false;
 
         shaders[0].destroy(device);
