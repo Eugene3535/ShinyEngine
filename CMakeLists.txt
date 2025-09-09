@@ -44,6 +44,7 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/texture/Texture2D.cpp
 	src/vulkan_api/wrappers/mesh/Mesh.cpp
 	src/vulkan_api/wrappers/uniform/UniformBufferHolder.cpp
+	src/vulkan_api/wrappers/render/Render.cpp
 	src/Application.cpp
 	src/main.cpp
 )
