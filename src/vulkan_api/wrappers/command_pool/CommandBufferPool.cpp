@@ -11,12 +11,12 @@ CommandBufferPool::CommandBufferPool() noexcept:
 }
 
 
-bool CommandBufferPool::create(VkDevice device, uint32_t mainQueueFamilyIndex) noexcept
+bool CommandBufferPool::create(VkDevice device, uint32_t queueFamilyIndex) noexcept
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = mainQueueFamilyIndex;
+    poolInfo.queueFamilyIndex = queueFamilyIndex;
 
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &handle) != VK_SUCCESS)
         return false;

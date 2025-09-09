@@ -12,7 +12,7 @@ class CommandBufferPool
 public:
     CommandBufferPool() noexcept;
 
-    bool create(VkDevice device, uint32_t mainQueueFamilyIndex) noexcept;
+    bool create(VkDevice device, uint32_t queueFamilyIndex) noexcept;
     void destroy(VkDevice device) noexcept;
 
     VkCommandPool handle;
