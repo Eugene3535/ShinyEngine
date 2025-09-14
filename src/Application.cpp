@@ -78,10 +78,9 @@ bool Application::initVulkan() noexcept
         if(shaders[1].loadFromFile(device, VK_SHADER_STAGE_FRAGMENT_BIT, "res/shaders/fragment_shader.spv") != VK_SUCCESS)
             return false;
 
-        std::array<const VertexInputState::Attribute, 3> attributes =
+        std::array<const VertexInputState::Attribute, 2> attributes =
         {
             VertexInputState::Attribute::Float2,
-            VertexInputState::Attribute::Float3,
             VertexInputState::Attribute::Float2
         };
 
