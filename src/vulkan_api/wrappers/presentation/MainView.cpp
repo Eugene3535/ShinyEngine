@@ -1,5 +1,8 @@
+#include <vector>
+
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <glm/common.hpp>
 
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"

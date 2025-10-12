@@ -7,7 +7,6 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan_api/utils/Defines.hpp"
-#include "vulkan_api/utils/Structures.hpp"
 
 BEGIN_NAMESPACE_VK
 
