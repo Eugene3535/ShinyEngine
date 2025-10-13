@@ -143,9 +143,8 @@ bool Texture2D::loadFromFile(const char* filepath, VkPhysicalDevice GPU, VkDevic
     if (!pixels)
         return false;
     
-    VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    vk::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, GPU);
+    VkBuffer stagingBuffer = vk::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBufferMemory, device, GPU);
 
     void *data;
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);

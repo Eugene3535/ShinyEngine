@@ -78,7 +78,7 @@ void endSingleTimeCommands(VkCommandBuffer cmd, VkDevice device, VkCommandPool p
 }
 
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice GPU) noexcept
+VkBuffer createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice GPU) noexcept
 {
     VkBufferCreateInfo bufferInfo = 
     {
@@ -92,10 +92,10 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
         .pQueueFamilyIndices = nullptr
     };
 
+    VkBuffer buffer;
+
     if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-    {
-        printf("failed to create buffer!");
-    }
+        return nullptr;
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
@@ -109,27 +109,32 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     };
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-    {
-        printf("failed to allocate buffer memory!");
-    }
+        goto buffer_create_error;
+    
+    if(vkBindBufferMemory(device, buffer, bufferMemory, 0) == VK_SUCCESS)
+        return buffer;
 
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    buffer_create_error:
+    vkDestroyBuffer(device, buffer, nullptr);
+
+    return nullptr;
 }
 
 
 void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
-    VkCommandBuffer cmd = beginSingleTimeCommands(device, pool);
-
-    VkBufferCopy copyRegion = 
+    if(VkCommandBuffer cmd = beginSingleTimeCommands(device, pool))
     {
-        .srcOffset = 0,
-        .dstOffset = 0,
-        .size = size
-    };
+        VkBufferCopy copyRegion = 
+        {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = size
+        };
 
-    vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
-    endSingleTimeCommands(cmd, device, pool, queue);
+        vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
+        endSingleTimeCommands(cmd, device, pool, queue);
+    }
 }
 
 END_NAMESPACE_VK
