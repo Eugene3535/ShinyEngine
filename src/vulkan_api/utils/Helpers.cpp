@@ -109,15 +109,21 @@ VkBuffer createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPrope
     };
 
     if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-        goto buffer_create_error;
+    {
+        vkDestroyBuffer(device, buffer, nullptr);
+
+        return nullptr;
+    }
     
-    if(vkBindBufferMemory(device, buffer, bufferMemory, 0) == VK_SUCCESS)
-        return buffer;
+    if(vkBindBufferMemory(device, buffer, bufferMemory, 0) != VK_SUCCESS)
+    {
+        vkFreeMemory(device, bufferMemory, nullptr);
+        vkDestroyBuffer(device, buffer, nullptr);
 
-    buffer_create_error:
-    vkDestroyBuffer(device, buffer, nullptr);
+        return nullptr;
+    }
 
-    return nullptr;
+    return buffer;
 }
 
 

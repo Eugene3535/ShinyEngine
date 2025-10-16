@@ -8,6 +8,7 @@
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
 #include "vulkan_api/wrappers/render/Render.hpp"
+
 #include "Application.hpp"
 
 
@@ -139,10 +140,10 @@ bool Application::initVulkan() noexcept
         return false;
 
     auto queue = m_api.getQueue();
-    auto pool = m_commandPool.handle;
+    auto commandPool = m_commandPool.handle;
 
     {
-        if(!m_texture.loadFromFile("res/textures/container.jpg", GPU, device, pool, queue))
+        if(!m_texture.loadFromFile("res/textures/container.jpg", GPU, device, commandPool, queue))
             return false;
                 
         VkDescriptorImageInfo imageInfo = 
@@ -156,8 +157,24 @@ bool Application::initVulkan() noexcept
         m_descriptorPool->writeCombinedImageSampler(&imageInfo, m_descriptorSets[1], 0);
     }
 
-    if(!m_mesh.create(GPU, device, pool, queue)) 
-        return false;
+    {
+        const std::array<float, 16> vertices = 
+        {
+            -0.5f, -0.5f, 0.0f, 0.0f,
+            0.5f, -0.5f, 1.0f, 0.0f,
+            0.5f,  0.5f, 1.0f, 1.0f,
+            -0.5f,  0.5f, 0.0f, 1.0f
+        };
+
+        const std::array<uint32_t, 6> indices = 
+        {
+            0, 1, 2, 2, 3, 0
+        };
+
+        m_holder = std::make_unique<VkResourceHolder>(GPU, device, queue, commandPool);
+        m_vertices = m_holder->createBuffer<float>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT); // вынести флаг в constexpr условие со static_assert
+        m_indices = m_holder->createBuffer<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    }
 
     return true;
 }
@@ -185,7 +202,7 @@ void Application::cleanup() noexcept
     m_descriptorPool->destroy();
 
     m_texture.destroy(device);
-    m_mesh.destroy(device);
+    m_holder->cleanup();
 
     m_sync.destroy(device);
 
@@ -239,17 +256,17 @@ void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
 }
 
 
-void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept
+void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, VkDescriptorSet descriptorSet) noexcept
 {
     VkDeviceSize offsets[] = {0};
-    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
+    VkBuffer vertexBuffers[] = {m_vertices.handle};
     
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getHandle());
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(cmd, m_indices.handle, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getLayout(), 0, 1, &descriptorSet, 0, nullptr);
     vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_mvp);
-    vkCmdDrawIndexed(cmd, mesh.getIndexCount(), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cmd, m_indices.size, 1, 0, 0, 0);
 }
 
 
@@ -285,10 +302,10 @@ void Application::drawFrame() noexcept
         return;
 
     updateUniformBuffer(frame, true);
-    writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
+    writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
 
     updateUniformBuffer(frame, false);
-    writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
+    writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
 
     if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;

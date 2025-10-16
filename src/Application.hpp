@@ -10,8 +10,7 @@
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
-#include "vulkan_api/wrappers/mesh/Mesh.hpp"
-
+#include "vulkan_api/resources/VkResourceHolder.hpp"
 
 class Application
 {
@@ -26,7 +25,7 @@ private:
     void recreateSwapChain() noexcept;
     void updateUniformBuffer(uint32_t currentImage, bool b = false) noexcept;
 
-    void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept;
+    void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
 
     struct GLFWwindow* window;
@@ -41,7 +40,10 @@ private:
     SyncManager       m_sync;
 
     Texture2D m_texture;
-    Mesh      m_mesh;
+
+    std::unique_ptr<VkResourceHolder> m_holder;
+    Buffer m_vertices;
+    Buffer m_indices;
 
     glm::mat4 m_mvp = glm::mat4(1.f);
 

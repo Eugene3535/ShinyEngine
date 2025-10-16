@@ -42,7 +42,7 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
 	src/vulkan_api/wrappers/sync/SyncManager.cpp
 	src/vulkan_api/wrappers/texture/Texture2D.cpp
-	src/vulkan_api/wrappers/mesh/Mesh.cpp
+	src/vulkan_api/resources/VkResourceHolder.cpp
 	src/vulkan_api/wrappers/render/Render.cpp
 	src/Application.cpp
 	src/main.cpp
