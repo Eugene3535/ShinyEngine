@@ -11,10 +11,17 @@ public:
     bool loadFromFile(const char* filepath, VkPhysicalDevice GPU, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept;
     void destroy(VkDevice device) noexcept;
 
-    VkImage        textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView    textureImageView;
-    VkSampler      textureSampler;
+    VkImageView getImageView() const noexcept;
+    VkSampler   getSampler() const noexcept;
+
+private:
+    VkResult createImageView(VkDevice device) noexcept;
+    VkResult createSampler(VkPhysicalDevice GPU, VkDevice device) noexcept;
+
+    VkDeviceMemory m_imageMemory;
+    VkImage        m_image;
+    VkImageView    m_imageView;
+    VkSampler      m_sampler;
 };
 
 #endif // !TEXTURE2D_HPP

@@ -148,8 +148,8 @@ bool Application::initVulkan() noexcept
                 
         VkDescriptorImageInfo imageInfo = 
         {
-            .sampler     = m_texture.textureSampler,
-            .imageView   = m_texture.textureImageView,
+            .sampler     = m_texture.getSampler(),
+            .imageView   = m_texture.getImageView(),
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
         };
 
