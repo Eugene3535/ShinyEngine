@@ -80,7 +80,7 @@ bool Application::initVulkan() noexcept
 
         std::array<const VertexInputState::Attribute, 2> attributes =
         {
-            VertexInputState::Attribute::Float2,
+            VertexInputState::Attribute::Float3,
             VertexInputState::Attribute::Float2
         };
 
@@ -158,12 +158,12 @@ bool Application::initVulkan() noexcept
     }
 
     {
-        const std::array<float, 16> vertices = 
+        const std::array<float, 20> vertices = 
         {
-            -0.5f, -0.5f, 0.0f, 0.0f,
-            0.5f, -0.5f, 1.0f, 0.0f,
-            0.5f,  0.5f, 1.0f, 1.0f,
-            -0.5f,  0.5f, 0.0f, 1.0f
+            -0.5f, -0.5f, 0.f, 0.f, 0.f,
+             0.5f, -0.5f, 0.f, 1.f, 0.f,
+             0.5f,  0.5f, 0.f, 1.f, 1.f,
+            -0.5f,  0.5f, 0.f, 0.f, 1.f
         };
 
         const std::array<uint32_t, 6> indices = 
