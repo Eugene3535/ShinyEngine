@@ -25,7 +25,6 @@ namespace
         int32_t  channels;
     };
 
-
     struct BufferMemoryDeleter
     {
         ~BufferMemoryDeleter() 
@@ -38,158 +37,6 @@ namespace
         VkBuffer buffer = nullptr;
         VkDevice device = nullptr;
     };
-
-
-    bool transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
-    {
-        if(VkCommandBuffer cmd = vk::beginSingleTimeCommands(device, pool))
-        {
-            VkImageMemoryBarrier barrier = 
-            {
-                .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                .pNext               = nullptr,
-                .srcAccessMask       = VK_ACCESS_NONE,
-                .dstAccessMask       = VK_ACCESS_NONE,
-                .oldLayout           = oldLayout,
-                .newLayout           = newLayout,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image               = image,
-                .subresourceRange    = 
-                {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel   = 0,
-                    .levelCount     = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount     = 1
-                }
-            };
-
-            VkPipelineStageFlags sourceStage;
-            VkPipelineStageFlags destinationStage;
-
-            if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-            {
-                barrier.srcAccessMask = VK_ACCESS_NONE;
-                barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-                sourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-                destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            }
-            else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-            {
-                barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-                sourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
-                destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-            }
-            else return false; // unsupported transition
-
-            vkCmdPipelineBarrier(
-                cmd,
-                sourceStage, destinationStage,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier);
-
-            vk::endSingleTimeCommands(cmd, device, pool, queue);
-
-            return true;
-        }
-
-        return false;
-    }
-
-
-    bool copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
-    {
-        if(VkCommandBuffer cmd = vk::beginSingleTimeCommands(device, pool))
-        {
-            VkBufferImageCopy region = 
-            {
-                .bufferOffset      = 0,
-                .bufferRowLength   = 0,
-                .bufferImageHeight = 0,
-                .imageSubresource  = 
-                {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .mipLevel       = 0,
-                    .baseArrayLayer = 0,
-                    .layerCount     = 1
-                },
-                .imageOffset = 
-                {
-                    .x = 0, 
-                    .y = 0, 
-                    .z = 0
-                },
-                .imageExtent = 
-                {
-                    .width  = width,
-                    .height = height,
-                    .depth  = 1
-                }
-            };
-
-            vkCmdCopyBufferToImage(cmd, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-            vk::endSingleTimeCommands(cmd, device, pool, queue);
-
-            return true;
-        }
-
-        return false;
-    }
-
-
-    VkResult createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkPhysicalDevice GPU, VkDevice device) noexcept
-    {
-        VkResult result = VK_SUCCESS;
-
-        VkImageCreateInfo imageInfo = 
-        {
-            .sType     = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .pNext     = nullptr,
-            .flags     = 0,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format    = format,
-            .extent    = 
-            {
-                .width  = width,
-                .height = height,
-                .depth  = 1
-            },
-            .mipLevels             = 1,
-            .arrayLayers           = 1,
-            .samples               = VK_SAMPLE_COUNT_1_BIT,
-            .tiling                = tiling,
-            .usage                 = usage,
-            .sharingMode           = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices   = nullptr,
-            .initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED
-        };
-
-        if (result = vkCreateImage(device, &imageInfo, nullptr, &image); result == VK_SUCCESS)
-        {
-            VkMemoryRequirements memRequirements;
-            vkGetImageMemoryRequirements(device, image, &memRequirements);
-
-            VkMemoryAllocateInfo allocInfo = 
-            {
-                .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                .pNext           = nullptr,
-                .allocationSize  = memRequirements.size,
-                .memoryTypeIndex = vk::findMemoryType(memRequirements.memoryTypeBits, properties, GPU)
-            };
-
-            if (result = vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory); result == VK_SUCCESS)
-                result = vkBindImageMemory(device, image, imageMemory, 0);
-        }
-
-        return result;
-    }
 }
 
 
@@ -228,7 +75,7 @@ bool Texture2D::loadFromFile(const char* filepath, VkPhysicalDevice GPU, VkDevic
     }
     else return false;
 
-    if(createImage(
+    if(vk::createImage2D(
         stbImage.width, 
         stbImage.height, 
         VK_FORMAT_R8G8B8A8_SRGB, 
@@ -241,16 +88,16 @@ bool Texture2D::loadFromFile(const char* filepath, VkPhysicalDevice GPU, VkDevic
         device) != VK_SUCCESS)
         return false;
         
-    if (!transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, device, pool, queue))
+    if ( ! vk::transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, device, pool, queue))
         return false;
 
-    if (!copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(stbImage.width), static_cast<uint32_t>(stbImage.height), device, pool, queue))
+    if ( ! vk::copyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(stbImage.width), static_cast<uint32_t>(stbImage.height), device, pool, queue))
         return false;
 
-    if (!transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, device, pool, queue))
+    if ( ! vk::transitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, device, pool, queue))
         return false;
 
-    if (createImageView(device) != VK_SUCCESS)
+    if(vk::createImageView2D(device, m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_imageView) != VK_SUCCESS)
         return false;
     
     if (createSampler(GPU, device) != VK_SUCCESS)
@@ -278,37 +125,6 @@ void Texture2D::destroy(VkDevice device) noexcept
     vkDestroyImageView(device, m_imageView, nullptr);
     vkDestroyImage(device, m_image, nullptr);
     vkFreeMemory(device, m_imageMemory, nullptr);
-}
-
-
-VkResult Texture2D::createImageView(VkDevice device) noexcept
-{
-    VkImageViewCreateInfo viewInfo = 
-    {
-        .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext            = nullptr,
-        .flags            = 0,
-        .image            = m_image,
-        .viewType         = VK_IMAGE_VIEW_TYPE_2D,
-        .format           = VK_FORMAT_R8G8B8A8_SRGB,
-        .components       = 
-        {
-            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .a = VK_COMPONENT_SWIZZLE_IDENTITY
-        },
-        .subresourceRange = 
-        {
-            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel   = 0,
-            .levelCount     = 1,
-            .baseArrayLayer = 0,
-            .layerCount     = 1
-        }
-    };
-
-    return vkCreateImageView(device, &viewInfo, nullptr, &m_imageView);
 }
 
 

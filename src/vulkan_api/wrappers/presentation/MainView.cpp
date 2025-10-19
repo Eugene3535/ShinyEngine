@@ -1,4 +1,5 @@
 #include <vector>
+#include <memory>
 
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>

@@ -15,7 +15,6 @@ public:
     VkSampler   getSampler() const noexcept;
 
 private:
-    VkResult createImageView(VkDevice device) noexcept;
     VkResult createSampler(VkPhysicalDevice GPU, VkDevice device) noexcept;
 
     VkDeviceMemory m_imageMemory;
