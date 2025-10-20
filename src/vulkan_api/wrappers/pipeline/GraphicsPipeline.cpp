@@ -105,8 +105,8 @@ GraphicsPipeline::State* GraphicsPipeline::State::setupRasterization(VkPolygonMo
         .depthClampEnable        = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode             = mode,
-        .cullMode                = VK_CULL_MODE_FRONT_BIT,
-        .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+        .cullMode                = VK_CULL_MODE_NONE, // Добавить переключение отсечения граней, например VK_CULL_MODE_FRONT_BIT
+        .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable         = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
         .depthBiasClamp          = 0.f,

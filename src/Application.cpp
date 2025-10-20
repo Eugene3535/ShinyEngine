@@ -136,6 +136,8 @@ bool Application::initVulkan() noexcept
     if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex()))
         return false;
 
+    createDepthResources();
+
     if(!m_sync.create(device)) 
         return false;
 
@@ -180,6 +182,17 @@ bool Application::initVulkan() noexcept
 }
 
 
+void Application::createDepthResources() noexcept
+{
+    if(VkFormat depthFormat = vk::findDepthFormat(m_api.getPhysicalDevice()); depthFormat != VK_FORMAT_UNDEFINED)
+    {
+        auto extent = m_mainView.getExtent();
+        auto res = vk::createImage2D(extent.width, extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory, m_api.getPhysicalDevice(), m_api.getDevice());
+        res = vk::createImageView2D(m_api.getDevice(), m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_depthImageView);
+    }
+}
+
+
 void Application::mainLoop() noexcept
 {
     while (!glfwWindowShouldClose(window))
@@ -204,6 +217,10 @@ void Application::cleanup() noexcept
     m_texture.destroy(device);
     m_holder->cleanup();
 
+    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
+    vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
+    vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
+
     m_sync.destroy(device);
 
     m_commandPool.destroy(device);
@@ -227,11 +244,11 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
+void Application::updateUniformBuffer(bool b) noexcept
 {
     if(b)
     {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, 0));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, -0.8f));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
@@ -245,7 +262,7 @@ void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
         cnt += 1;
 
         glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
-        model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 0, 1));
+        model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 1, 0));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
@@ -301,10 +318,10 @@ void Application::drawFrame() noexcept
     if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
 
-    updateUniformBuffer(frame, true);
+    updateUniformBuffer(true);
     writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
 
-    updateUniformBuffer(frame, false);
+    updateUniformBuffer(false);
     writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
 
     if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)

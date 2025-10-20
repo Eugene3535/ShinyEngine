@@ -20,10 +20,11 @@ public:
 private:
     void initWindow() noexcept;
     bool initVulkan() noexcept;
+    void createDepthResources() noexcept;
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void updateUniformBuffer(uint32_t currentImage, bool b = false) noexcept;
+    void updateUniformBuffer(bool b = false) noexcept;
 
     void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
