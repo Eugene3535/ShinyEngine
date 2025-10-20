@@ -9,7 +9,7 @@
 class MainView
 {
 public:
-    static constexpr uint32_t buffer_count = 3U;
+    static constexpr uint32_t min_buffer_count = 2U;
 
     MainView() noexcept;
     ~MainView();
@@ -33,8 +33,8 @@ private:
     VkSurfaceKHR   m_surface;
     VkSwapchainKHR m_swapchain;
 
-    std::array<VkImage, buffer_count>     m_images;
-    std::array<VkImageView, buffer_count> m_imageViews;
+    std::array<VkImage, min_buffer_count>     m_images;
+    std::array<VkImageView, min_buffer_count> m_imageViews;
 
     VkFormat   m_format;
     VkExtent2D m_extent;

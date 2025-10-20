@@ -239,8 +239,6 @@ void Application::cleanup() noexcept
 {
     auto device = m_api.getDevice();
 
-    m_mainView.destroy();
-
     m_pipeline.destroy(device);
     m_descriptorPool->destroy();
 
@@ -255,6 +253,7 @@ void Application::cleanup() noexcept
 
     m_commandPool.destroy(device);
 
+    m_mainView.destroy();
     m_api.destroy();
 
     glfwDestroyWindow(window);
@@ -271,7 +270,9 @@ void Application::recreateSwapChain() noexcept
     vkDeviceWaitIdle(device);
 
     m_mainView.recreate();
-    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
+    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE); // TODO : fix reallocation
+    vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
+    vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
     createDepthResources();
 }
 
