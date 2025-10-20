@@ -2,6 +2,7 @@
 
 #include <glm/mat4x4.hpp>
 
+#include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 
@@ -105,7 +106,7 @@ GraphicsPipeline::State* GraphicsPipeline::State::setupRasterization(VkPolygonMo
         .depthClampEnable        = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode             = mode,
-        .cullMode                = VK_CULL_MODE_NONE, // Добавить переключение отсечения граней, например VK_CULL_MODE_FRONT_BIT
+        .cullMode                = VK_CULL_MODE_NONE, // TODO Добавить переключение отсечения граней, например VK_CULL_MODE_FRONT_BIT
         .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable         = VK_FALSE,
         .depthBiasConstantFactor = 0.f,
@@ -195,16 +196,22 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
     if(!stages)
         return VK_ERROR_INITIALIZATION_FAILED;
 
+   auto GPU = view.getVulkanApi()->getPhysicalDevice();
     auto device = view.getVulkanApi()->getDevice();
     destroy(device);
 
-    const VkFormat format = view.getFormat();
+    const VkFormat colorFormat = view.getFormat();
+    const VkFormat depthFormat = vk::findDepthFormat(GPU);
 
     const VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo =
     {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+        .pNext                   = nullptr,
+        .viewMask                = 0,
         .colorAttachmentCount    = 1,
-        .pColorAttachmentFormats = &format
+        .pColorAttachmentFormats = &colorFormat,
+        .depthAttachmentFormat   = depthFormat,
+        .stencilAttachmentFormat = VK_FORMAT_UNDEFINED
     };
 
     const auto& shaderStages  = stages->shaders;
@@ -265,6 +272,22 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
         return VK_ERROR_INITIALIZATION_FAILED;
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil = 
+    {
+        .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .pNext                 = VK_NULL_HANDLE,
+        .flags                 = 0,
+        .depthTestEnable       = VK_TRUE,
+        .depthWriteEnable      = VK_TRUE,
+        .depthCompareOp        = VK_COMPARE_OP_LESS,
+        .depthBoundsTestEnable = VK_FALSE,
+        .stencilTestEnable     = VK_FALSE,
+        .front                 = {},
+        .back                  = {},
+        .minDepthBounds        = 0.f,
+        .maxDepthBounds        = 1.f
+    };
+
     VkGraphicsPipelineCreateInfo pipelineInfo = 
     {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -278,7 +301,7 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
         .pViewportState      = &viewportState,
         .pRasterizationState = &rasterizer,
         .pMultisampleState   = &multisampling,
-        .pDepthStencilState  = nullptr,
+        .pDepthStencilState  = &depthStencil,
         .pColorBlendState    = &colorBlending,
         .pDynamicState       = &dynamicState,
         .layout              = m_layout,

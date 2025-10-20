@@ -3,7 +3,7 @@
 
 
 // TODO add clear color value
-VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t imageIndex) noexcept
+VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t imageIndex, VkImageView depthImageView) noexcept
 {
     VkCommandBufferBeginInfo beginInfo = 
     {
@@ -54,24 +54,47 @@ VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t image
 
     const VkRenderingAttachmentInfoKHR colorAttachmentInfo = 
     {
-        .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = view.getImageView(imageIndex),
-        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
-        .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = {{ 0.0f, 0.0f, 0.0f, 1.0f }}
+        .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+        .pNext              = VK_NULL_HANDLE,
+        .imageView          = view.getImageView(imageIndex),
+        .imageLayout        = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
+        .resolveMode        = VK_RESOLVE_MODE_NONE,
+        .resolveImageView   = VK_NULL_HANDLE,
+        .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue         = {{ 0.0f, 0.0f, 0.0f, 1.0f }}
     };
 
-    const VkRenderingInfoKHR render_info =
+    VkRenderingAttachmentInfoKHR depthAttachmentInfo = 
+    {
+        .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+        .pNext              = VK_NULL_HANDLE,
+        .imageView          = depthImageView,
+        .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        .resolveMode        = VK_RESOLVE_MODE_NONE,
+        .resolveImageView   = VK_NULL_HANDLE,
+        .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp            = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .clearValue         = { 1.f, 0.f }
+    };
+
+    const VkRenderingInfoKHR renderingInfo =
     {
         .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-        .renderArea           = {  {0, 0 }, extent },
+        .pNext                = VK_NULL_HANDLE,
+        .flags                = 0,
+        .renderArea           = { { 0, 0 }, extent },
         .layerCount           = 1,
+        .viewMask             = 0,
         .colorAttachmentCount = 1,
-        .pColorAttachments    = &colorAttachmentInfo
+        .pColorAttachments    = &colorAttachmentInfo,
+        .pDepthAttachment     = &depthAttachmentInfo,
+        .pStencilAttachment   = VK_NULL_HANDLE
     };
 
-    vkCmdBeginRendering(cmd, &render_info);
+    vkCmdBeginRendering(cmd, &renderingInfo);
 
     VkViewport viewport = 
     {

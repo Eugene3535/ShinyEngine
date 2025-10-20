@@ -160,21 +160,51 @@ bool Application::initVulkan() noexcept
     }
 
     {
-        const std::array<float, 20> vertices = 
+        const std::array<float, 120> vertices = 
         {
             -0.5f, -0.5f, 0.f, 0.f, 0.f,
              0.5f, -0.5f, 0.f, 1.f, 0.f,
              0.5f,  0.5f, 0.f, 1.f, 1.f,
-            -0.5f,  0.5f, 0.f, 0.f, 1.f
+            -0.5f,  0.5f, 0.f, 0.f, 1.f,
+
+            -0.5f, -0.5f, -1.f, 0.f, 0.f,
+            -0.5f, -0.5f,  0.f, 1.f, 0.f,
+            -0.5f,  0.5f,  0.f, 1.f, 1.f,
+            -0.5f,  0.5f, -1.f, 0.f, 1.f,
+
+             0.5f, -0.5f,  0.f, 0.f, 0.f,
+             0.5f, -0.5f, -1.f, 1.f, 0.f,
+             0.5f,  0.5f, -1.f, 1.f, 1.f,
+             0.5f,  0.5f,  0.f, 0.f, 1.f,
+
+            -0.5f, -0.5f, -1.f, 0.f, 0.f,
+             0.5f, -0.5f, -1.f, 1.f, 0.f,
+             0.5f,  0.5f, -1.f, 1.f, 1.f,
+            -0.5f,  0.5f, -1.f, 0.f, 1.f,
+
+            -0.5f, 0.5f,  0.f, 0.f, 0.f,
+             0.5f, 0.5f,  0.f, 1.f, 0.f,
+             0.5f, 0.5f, -1.f, 1.f, 1.f,
+            -0.5f, 0.5f, -1.f, 0.f, 1.f,
+
+            -0.5f, -0.5f, -1.f, 0.f, 0.f,
+             0.5f, -0.5f, -1.f, 1.f, 0.f,
+             0.5f, -0.5f,  0.f, 1.f, 1.f,
+            -0.5f, -0.5f,  0.f, 0.f, 1.f
         };
 
-        const std::array<uint32_t, 6> indices = 
+        const std::array<uint32_t, 36> indices = 
         {
-            0, 1, 2, 2, 3, 0
+            0,  1,  2,  2,  3,  0,   // front
+            4,  5,  6,  6,  7,  4,   // left
+            8,  9,  10, 10, 11, 8,   // right
+            12, 13, 14, 14, 15, 12,  // back
+            16, 17, 18, 18, 19, 16,  // top
+            20, 21, 22, 22, 23, 20   // bottom
         };
 
         m_holder = std::make_unique<VkResourceHolder>(GPU, device, queue, commandPool);
-        m_vertices = m_holder->createBuffer<float>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT); // вынести флаг в constexpr условие со static_assert
+        m_vertices = m_holder->createBuffer<float>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT); // TODO вынести флаг в constexpr условие со static_assert
         m_indices = m_holder->createBuffer<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     }
 
@@ -241,14 +271,20 @@ void Application::recreateSwapChain() noexcept
     vkDeviceWaitIdle(device);
 
     m_mainView.recreate();
+    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
+    createDepthResources();
 }
 
 
 void Application::updateUniformBuffer(bool b) noexcept
 {
+    static float cnt = 0;
+    cnt += 1;
+
     if(b)
     {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, -0.8f));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, -1.f));
+        model = glm::rotate(model, glm::radians(-cnt), glm::vec3(0, 1, 0));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
@@ -258,11 +294,8 @@ void Application::updateUniformBuffer(bool b) noexcept
     }
     else
     {
-        static float cnt = 0;
-        cnt += 1;
-
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
-        model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 1, 0));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f));
+        model = glm::rotate(model, glm::radians(cnt), glm::vec3(1, 0, 0));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
@@ -315,7 +348,7 @@ void Application::drawFrame() noexcept
 
     vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
 
-    if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
+    if(Render::begin(commandBuffer, m_mainView, imageIndex, m_depthImageView) != VK_SUCCESS)
         return;
 
     updateUniformBuffer(true);
