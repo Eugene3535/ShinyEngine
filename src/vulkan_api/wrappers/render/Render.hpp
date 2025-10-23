@@ -7,7 +7,7 @@
 class Render
 {
 public:
-    static VkResult begin(VkCommandBuffer cmd, const class MainView& view, uint32_t imageIndex, VkImageView depthImageView) noexcept;
+    static VkResult begin(VkCommandBuffer cmd, const class MainView& view, uint32_t imageIndex) noexcept;
     static VkResult end(VkCommandBuffer cmd, const class MainView& view, uint32_t imageIndex) noexcept;
 };
 

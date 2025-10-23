@@ -136,8 +136,6 @@ bool Application::initVulkan() noexcept
     if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex()))
         return false;
 
-    createDepthResources();
-
     if(!m_sync.create(device)) 
         return false;
 
@@ -212,17 +210,6 @@ bool Application::initVulkan() noexcept
 }
 
 
-void Application::createDepthResources() noexcept
-{
-    if(VkFormat depthFormat = vk::findDepthFormat(m_api.getPhysicalDevice()); depthFormat != VK_FORMAT_UNDEFINED)
-    {
-        auto extent = m_mainView.getExtent();
-        auto res = vk::createImage2D(extent.width, extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory, m_api.getPhysicalDevice(), m_api.getDevice());
-        res = vk::createImageView2D(m_api.getDevice(), m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_depthImageView);
-    }
-}
-
-
 void Application::mainLoop() noexcept
 {
     while (!glfwWindowShouldClose(window))
@@ -245,10 +232,6 @@ void Application::cleanup() noexcept
     m_texture.destroy(device);
     m_holder->cleanup();
 
-    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
-    vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
-    vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
-
     m_sync.destroy(device);
 
     m_commandPool.destroy(device);
@@ -269,11 +252,7 @@ void Application::recreateSwapChain() noexcept
 
     vkDeviceWaitIdle(device);
 
-    m_mainView.recreate();
-    vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE); // TODO : fix reallocation
-    vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
-    vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
-    createDepthResources();
+    m_mainView.recreate(true);
 }
 
 
@@ -349,7 +328,7 @@ void Application::drawFrame() noexcept
 
     vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
 
-    if(Render::begin(commandBuffer, m_mainView, imageIndex, m_depthImageView) != VK_SUCCESS)
+    if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
 
     updateUniformBuffer(true);

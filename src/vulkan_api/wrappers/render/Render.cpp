@@ -3,7 +3,7 @@
 
 
 // TODO add clear color value
-VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t imageIndex, VkImageView depthImageView) noexcept
+VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t imageIndex) noexcept
 {
     VkCommandBufferBeginInfo beginInfo = 
     {
@@ -70,7 +70,7 @@ VkResult Render::begin(VkCommandBuffer cmd, const MainView& view, uint32_t image
     {
         .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
         .pNext              = VK_NULL_HANDLE,
-        .imageView          = depthImageView,
+        .imageView          = view.getDepthImageView(),
         .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
         .resolveMode        = VK_RESOLVE_MODE_NONE,
         .resolveImageView   = VK_NULL_HANDLE,

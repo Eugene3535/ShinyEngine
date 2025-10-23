@@ -13,7 +13,7 @@ public:
     ~MainView();
 
     VkResult create(VulkanApi& api, struct GLFWwindow* window) noexcept;
-    VkResult recreate() noexcept;
+    VkResult recreate(bool depth) noexcept;
     void     destroy()  noexcept;
 
     VkSwapchainKHR&   getSwapchain() noexcept;
@@ -22,10 +22,13 @@ public:
 
     VkImage     getImage(uint32_t index)     const noexcept;
     VkImageView getImageView(uint32_t index) const noexcept;
+    VkImageView getDepthImageView()          const noexcept;
 
     VulkanApi* getVulkanApi() const noexcept;
 
 private:
+    void createDepthResources() noexcept;
+
     VulkanApi* m_api;
 
     VkSurfaceKHR   m_surface;
@@ -33,6 +36,11 @@ private:
 
     std::vector<VkImage>     m_images;
     std::vector<VkImageView> m_imageViews;
+
+//  Depth buffer
+    VkImage        m_depthImage;
+    VkDeviceMemory m_depthImageMemory;
+    VkImageView    m_depthImageView;
 
     VkFormat   m_format;
     VkExtent2D m_extent;

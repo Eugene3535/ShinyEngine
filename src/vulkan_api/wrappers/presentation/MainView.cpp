@@ -70,7 +70,7 @@ namespace
 
         return details;
     }
-} // empty namespace
+}
 
 
 
@@ -78,6 +78,9 @@ MainView::MainView() noexcept:
     m_api(nullptr),
     m_surface(VK_NULL_HANDLE),
     m_swapchain(VK_NULL_HANDLE),
+    m_depthImage(VK_NULL_HANDLE),
+    m_depthImageMemory(VK_NULL_HANDLE),
+    m_depthImageView(VK_NULL_HANDLE),
     m_format(VK_FORMAT_UNDEFINED),
     m_extent({})
 {
@@ -103,7 +106,7 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
     };
 
     if(vkCreateWin32SurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
-        return recreate();
+        return recreate(true);
 #endif
 
 #ifdef __linux__
@@ -129,7 +132,7 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
 }
 
 
-VkResult MainView::recreate() noexcept
+VkResult MainView::recreate(bool depth) noexcept
 {
     auto choose_swap_extent = [](const VkSurfaceCapabilitiesKHR& capabilities, const VkExtent2D& currentExtent) -> VkExtent2D
     {
@@ -207,6 +210,20 @@ VkResult MainView::recreate() noexcept
                         return VK_ERROR_INITIALIZATION_FAILED;  
                 }
 
+                if (depth)
+                {
+                    if (m_depthImageView)
+                        vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
+
+                    if (m_depthImage)
+                        vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
+
+                    if (m_depthImageMemory)
+                        vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
+
+                    createDepthResources();
+                }
+
                 return VK_SUCCESS;
             }
         }
@@ -221,7 +238,7 @@ void MainView::destroy() noexcept
     if(m_api)
     {
         auto instance = m_api->getInstance();
-        auto device = m_api->getDevice();
+        auto device   = m_api->getDevice();
 
         if(m_swapchain)
         {
@@ -230,6 +247,15 @@ void MainView::destroy() noexcept
 
             vkDestroySwapchainKHR(device, m_swapchain, nullptr);
         }
+
+        if (m_depthImageView)
+            vkDestroyImageView(device, m_depthImageView, VK_NULL_HANDLE);
+
+        if (m_depthImage)
+            vkDestroyImage(device, m_depthImage, VK_NULL_HANDLE);
+
+        if (m_depthImageMemory)
+            vkFreeMemory(device, m_depthImageMemory, VK_NULL_HANDLE);
 
         if(m_surface)
             vkDestroySurfaceKHR(instance, m_surface, VK_NULL_HANDLE);
@@ -267,7 +293,26 @@ VkImageView MainView::getImageView(uint32_t index) const noexcept
 }
 
 
+VkImageView MainView::getDepthImageView() const noexcept
+{
+    return m_depthImageView;
+}
+
+
 VulkanApi* MainView::getVulkanApi() const noexcept
 {
     return m_api;
+}
+
+
+void MainView::createDepthResources() noexcept
+{
+    if (auto device = m_api->getDevice())
+    {
+        if (VkFormat depthFormat = vk::findDepthFormat(m_api->getPhysicalDevice()); depthFormat != VK_FORMAT_UNDEFINED)
+        {
+            vk::createImage2D(m_extent.width, m_extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory, m_api->getPhysicalDevice(), device);
+            vk::createImageView2D(device, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_depthImageView);
+        }
+    }
 }
