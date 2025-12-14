@@ -167,12 +167,6 @@ VkResult MainView::recreate(bool depth) noexcept
         auto swapChainSupport = query_swapchain_support(phisycalDevice, m_surface);
         const uint32_t minImageCount = swapChainSupport->capabilities.minImageCount;
 
-        if(m_images.empty())
-            m_images.resize(minImageCount);
-
-        if(m_imageViews.empty())
-            m_imageViews.resize(minImageCount);
-
         m_format = swapChainSupport->getSurfaceFormat().format;
         m_extent = choose_swap_extent(swapChainSupport->capabilities, m_extent);
 
@@ -200,7 +194,16 @@ VkResult MainView::recreate(bool depth) noexcept
 
         if (vkCreateSwapchainKHR(device, &swapchainInfo, nullptr, &m_swapchain) == VK_SUCCESS)
         {
-            uint32_t imageCount = static_cast<uint32_t>(m_images.size());
+            uint32_t imageCount = 0;
+            
+            if(vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, nullptr) != VK_SUCCESS)
+                return VK_ERROR_INITIALIZATION_FAILED;
+
+            if(m_images.empty())
+                m_images.resize(imageCount);
+
+            if(m_imageViews.empty())
+                m_imageViews.resize(imageCount);
 
             if (vkGetSwapchainImagesKHR(device, m_swapchain, &imageCount, m_images.data()) == VK_SUCCESS)
             {

@@ -12,6 +12,9 @@
 
 #include "Application.hpp"
 
+
+#define FPS_MEASUREMENT
+
 using Clock = std::chrono::high_resolution_clock;
 using TimeStamp = std::chrono::time_point<Clock>;
 
@@ -23,21 +26,6 @@ Camera camera(glm::vec3(0.f, 0.f, 3.f));
 
 float lastX = WIDTH / 2.f;
 float lastY = HEIGHT / 2.f;
-
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
-}
 
 
 void processInput(GLFWwindow *window, float dt)
@@ -93,7 +81,20 @@ void Application::initWindow() noexcept
             }
         });
 
-        glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetCursorPosCallback(window, [](GLFWwindow* window, double xposIn, double yposIn)
+        {
+            float xpos = static_cast<float>(xposIn);
+            float ypos = static_cast<float>(yposIn);
+
+            float xoffset = xpos - lastX;
+            float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+            lastX = xpos;
+            lastY = ypos;
+
+            camera.ProcessMouseMovement(xoffset, yoffset);
+        });
+
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 }
@@ -263,22 +264,40 @@ void Application::mainLoop() noexcept
     float deltaTime = 0.f;
     float lastFrame = 0.f;
 
+#ifdef FPS_MEASUREMENT
+    float timer = 0;
+    int fps = 0;
+#endif
+
     while (!glfwWindowShouldClose(window))
     {
+#ifndef FPS_MEASUREMENT
         const auto dt = Clock::now() - timestamp;
 
         if (dt < std::chrono::milliseconds(16)) // 60 FPS regulation
         { 
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            continue;
+           std::this_thread::sleep_for(std::chrono::milliseconds(1));
+           continue;
         }
 
         timestamp = Clock::now();
-
+#endif
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+#ifdef FPS_MEASUREMENT
+        timer += deltaTime;
+        ++fps;
+
+        if (timer > 1.f)
+        {
+            printf("FPS: %i\n", fps);
+            timer = 0;
+            fps = 0;
+
+        }
+#endif
         processInput(window, deltaTime);
 
         glfwPollEvents();
@@ -343,7 +362,6 @@ void Application::updateUniformBuffer(const glm::vec3& pos, float angle) noexcep
 {
     glm::mat4 model = glm::translate(glm::mat4(1.f), pos);
     model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-    // glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
     auto view = camera.GetViewMatrix();
     glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.f);
     proj[1][1] *= -1;
