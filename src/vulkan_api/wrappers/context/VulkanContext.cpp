@@ -6,7 +6,7 @@
 #include <cstdio>
 
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/setup/VulkanApi.hpp"
+#include "vulkan_api/wrappers/context/VulkanContext.hpp"
 
 
 namespace
@@ -48,7 +48,7 @@ namespace
 }
 
 
-VulkanApi::VulkanApi() noexcept:
+VulkanContext::VulkanContext() noexcept:
     m_instance(nullptr),
     m_physicalDevice(nullptr),
     m_device(nullptr),
@@ -59,10 +59,10 @@ VulkanApi::VulkanApi() noexcept:
 }
 
 
-VulkanApi::~VulkanApi() = default;
+VulkanContext::~VulkanContext() = default;
 
 
-VkResult VulkanApi::initialize() noexcept
+VkResult VulkanContext::initialize() noexcept
 {
     if(createInstance() == VK_SUCCESS)
         if(selectVideoCard() == VK_SUCCESS)
@@ -73,44 +73,44 @@ VkResult VulkanApi::initialize() noexcept
 }
 
 
-void VulkanApi::destroy() noexcept
+void VulkanContext::destroy() noexcept
 {
     vkDestroyDevice(m_device, VK_NULL_HANDLE);
     vkDestroyInstance(m_instance, VK_NULL_HANDLE);
 }
 
 
-VkInstance VulkanApi::getInstance() const noexcept
+VkInstance VulkanContext::getInstance() const noexcept
 {
     return m_instance;
 }
 
 
-VkPhysicalDevice VulkanApi::getPhysicalDevice() const noexcept
+VkPhysicalDevice VulkanContext::getPhysicalDevice() const noexcept
 {
     return m_physicalDevice;
 }
 
 
-VkDevice VulkanApi::getDevice() const noexcept
+VkDevice VulkanContext::getDevice() const noexcept
 {
     return m_device;
 }
 
 
-VkQueue VulkanApi::getQueue() const noexcept
+VkQueue VulkanContext::getQueue() const noexcept
 {
     return m_queue;
 }
 
 
-uint32_t VulkanApi::getMainQueueFamilyIndex() const noexcept
+uint32_t VulkanContext::getMainQueueFamilyIndex() const noexcept
 {
     return m_mainQueueFamilyIndex;
 }
 
 
-VkResult VulkanApi::createInstance() noexcept
+VkResult VulkanContext::createInstance() noexcept
 {
 #ifdef DEBUG
     if (!check_validation_layer_support())
@@ -199,7 +199,7 @@ VkResult VulkanApi::createInstance() noexcept
 }
 
 
-VkResult VulkanApi::selectVideoCard() noexcept
+VkResult VulkanContext::selectVideoCard() noexcept
 {    
     uint32_t deviceCount;
     vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
@@ -237,7 +237,7 @@ VkResult VulkanApi::selectVideoCard() noexcept
 }
 
 
-VkResult VulkanApi::createDevice() noexcept
+VkResult VulkanContext::createDevice() noexcept
 {
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(m_physicalDevice, &supportedFeatures);

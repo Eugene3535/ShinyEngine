@@ -105,15 +105,15 @@ bool Application::initVulkan() noexcept
     glfwGetFramebufferSize(window, &m_width, &m_height);
 
 //  Common
-    if(m_api.initialize() != VK_SUCCESS) 
+    if(m_context.initialize() != VK_SUCCESS) 
         return false;
 
-    auto instance = m_api.getInstance();
-    auto GPU      = m_api.getPhysicalDevice();
-    auto device   = m_api.getDevice();
+    auto instance = m_context.getInstance();
+    auto GPU      = m_context.getPhysicalDevice();
+    auto device   = m_context.getDevice();
 
 //  Main View
-    if(m_mainView.create(m_api, window) != VK_SUCCESS) 
+    if(m_mainView.create(m_context, window) != VK_SUCCESS) 
         return false;
     
     {// Pipeline
@@ -180,13 +180,13 @@ bool Application::initVulkan() noexcept
         }
     }
 
-    if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex()))
+    if(!m_commandPool.create(device, m_context.getMainQueueFamilyIndex()))
         return false;
 
     if(!m_sync.create(device)) 
         return false;
 
-    auto queue = m_api.getQueue();
+    auto queue = m_context.getQueue();
     auto commandPool = m_commandPool.handle;
 
     {
@@ -304,13 +304,13 @@ void Application::mainLoop() noexcept
         drawFrame();
     }
 
-    vkDeviceWaitIdle(m_api.getDevice());
+    vkDeviceWaitIdle(m_context.getDevice());
 }
 
 
 void Application::cleanup() noexcept
 {
-    auto device = m_api.getDevice();
+    auto device = m_context.getDevice();
 
     m_pipeline.destroy(device);
     m_descriptorPool->destroy();
@@ -323,7 +323,7 @@ void Application::cleanup() noexcept
     m_commandPool.destroy(device);
 
     m_mainView.destroy();
-    m_api.destroy();
+    m_context.destroy();
 
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -332,7 +332,7 @@ void Application::cleanup() noexcept
 
 void Application::recreateSwapChain() noexcept
 {
-    auto device = m_api.getDevice();
+    auto device = m_context.getDevice();
     int width = 0, height = 0;
     glfwGetFramebufferSize(window, &width, &height);
 
@@ -374,11 +374,9 @@ void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, V
 {
     VkDeviceSize offsets[] = {0};
     VkBuffer vertexBuffers[] = {m_vertices.handle};
-    
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getHandle());
+
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, m_indices.handle, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getLayout(), 0, 1, &descriptorSet, 0, nullptr);
     vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_mvp);
     vkCmdDrawIndexed(cmd, m_indices.size, 1, 0, 0, 0);
 }
@@ -387,8 +385,8 @@ void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, V
 void Application::drawFrame() noexcept
 {
     auto frame  = m_sync.currentFrame;
-    auto device = m_api.getDevice();
-    auto queue  = m_api.getQueue();
+    auto device = m_context.getDevice();
+    auto queue  = m_context.getQueue();
 
     vkWaitForFences(device, 1, &m_sync.inFlightFences[frame], VK_TRUE, UINT64_MAX);
 
@@ -414,6 +412,9 @@ void Application::drawFrame() noexcept
 
     if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getHandle());
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
     for (size_t i = 0; i < cubePositions.size(); ++i)
     {

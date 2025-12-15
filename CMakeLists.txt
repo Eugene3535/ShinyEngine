@@ -30,7 +30,7 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
-	src/vulkan_api/wrappers/setup/VulkanApi.cpp
+	src/vulkan_api/wrappers/context/VulkanContext.cpp
 	src/vulkan_api/wrappers/presentation/MainView.cpp
 	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.cpp
 	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.cpp
@@ -60,7 +60,7 @@ set(HDR_FILES
 	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.hpp    
 	src/vulkan_api/wrappers/presentation/MainView.hpp
 	src/vulkan_api/wrappers/render/Render.hpp
-	src/vulkan_api/wrappers/setup/VulkanApi.hpp
+	src/vulkan_api/wrappers/context/VulkanContext.hpp
 	src/vulkan_api/wrappers/sync/SyncManager.hpp
 	src/vulkan_api/wrappers/texture/Texture2D.hpp
 )

@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "vulkan_api/wrappers/setup/VulkanApi.hpp"
+#include "vulkan_api/wrappers/context/VulkanContext.hpp"
 
 
 class MainView
@@ -12,7 +12,7 @@ public:
     MainView() noexcept;
     ~MainView();
 
-    VkResult create(VulkanApi& api, struct GLFWwindow* window) noexcept;
+    VkResult create(VulkanContext& context, struct GLFWwindow* window) noexcept;
     VkResult recreate(bool depth) noexcept;
     void     destroy()  noexcept;
 
@@ -24,12 +24,12 @@ public:
     VkImageView getImageView(uint32_t index) const noexcept;
     VkImageView getDepthImageView()          const noexcept;
 
-    VulkanApi* getVulkanApi() const noexcept;
+    VulkanContext* getContext() const noexcept;
 
 private:
     void createDepthResources() noexcept;
 
-    VulkanApi* m_api;
+    VulkanContext* m_context;
 
     VkSurfaceKHR   m_surface;
     VkSwapchainKHR m_swapchain;

@@ -1,14 +1,14 @@
-#ifndef VULKAN_API_HPP
-#define VULKAN_API_HPP
+#ifndef VULKAN_CONTEXT_HPP
+#define VULKAN_CONTEXT_HPP
 
 #include <vulkan/vulkan.h>
 
 
-class VulkanApi
+class VulkanContext
 {
 public:
-    VulkanApi() noexcept;
-    ~VulkanApi();
+    VulkanContext() noexcept;
+    ~VulkanContext();
 
     VkResult initialize() noexcept;
     void destroy() noexcept;
@@ -31,4 +31,4 @@ private:
     uint32_t         m_mainQueueFamilyIndex;
 };
 
-#endif // !VULKAN_API_HPP
+#endif // !VULKAN_CONTEXT_HPP

@@ -196,8 +196,8 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
     if(!stages)
         return VK_ERROR_INITIALIZATION_FAILED;
 
-   auto GPU = view.getVulkanApi()->getPhysicalDevice();
-    auto device = view.getVulkanApi()->getDevice();
+   auto GPU = view.getContext()->getPhysicalDevice();
+    auto device = view.getContext()->getDevice();
     destroy(device);
 
     const VkFormat colorFormat = view.getFormat();

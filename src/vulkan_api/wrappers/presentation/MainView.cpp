@@ -75,7 +75,7 @@ namespace
 
 
 MainView::MainView() noexcept:
-    m_api(nullptr),
+    m_context(nullptr),
     m_surface(VK_NULL_HANDLE),
     m_swapchain(VK_NULL_HANDLE),
     m_depthImage(VK_NULL_HANDLE),
@@ -91,9 +91,9 @@ MainView::MainView() noexcept:
 MainView::~MainView() = default;
 
 
-VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
+VkResult MainView::create(VulkanContext& context, GLFWwindow* window) noexcept
 {
-    m_api = &api;
+    m_context = &context;
 
 #ifdef _WIN32
     const VkWin32SurfaceCreateInfoKHR surfaceInfo = 
@@ -105,7 +105,7 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
         .hwnd = glfwGetWin32Window(window)
     };
 
-    if(vkCreateWin32SurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
+    if(vkCreateWin32SurfaceKHR(context.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
         return recreate(true);
 #endif
 
@@ -150,10 +150,10 @@ VkResult MainView::recreate(bool depth) noexcept
         }
     };
 
-    if(m_api && m_surface)
+    if(m_context && m_surface)
     {
-        auto phisycalDevice = m_api->getPhysicalDevice();
-        auto device = m_api->getDevice();
+        auto phisycalDevice = m_context->getPhysicalDevice();
+        auto device = m_context->getDevice();
 
         if(m_swapchain)
         {
@@ -238,10 +238,10 @@ VkResult MainView::recreate(bool depth) noexcept
 
 void MainView::destroy() noexcept
 {
-    if(m_api)
+    if(m_context)
     {
-        auto instance = m_api->getInstance();
-        auto device   = m_api->getDevice();
+        auto instance = m_context->getInstance();
+        auto device   = m_context->getDevice();
 
         if(m_swapchain)
         {
@@ -302,19 +302,19 @@ VkImageView MainView::getDepthImageView() const noexcept
 }
 
 
-VulkanApi* MainView::getVulkanApi() const noexcept
+VulkanContext* MainView::getContext() const noexcept
 {
-    return m_api;
+    return m_context;
 }
 
 
 void MainView::createDepthResources() noexcept
 {
-    if (auto device = m_api->getDevice())
+    if (auto device = m_context->getDevice())
     {
-        if (VkFormat depthFormat = vk::findDepthFormat(m_api->getPhysicalDevice()); depthFormat != VK_FORMAT_UNDEFINED)
+        if (VkFormat depthFormat = vk::findDepthFormat(m_context->getPhysicalDevice()); depthFormat != VK_FORMAT_UNDEFINED)
         {
-            vk::createImage2D(m_extent.width, m_extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory, m_api->getPhysicalDevice(), device);
+            vk::createImage2D(m_extent.width, m_extent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory, m_context->getPhysicalDevice(), device);
             vk::createImageView2D(device, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_depthImageView);
         }
     }

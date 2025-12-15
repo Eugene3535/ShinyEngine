@@ -30,7 +30,7 @@ private:
 
     struct GLFWwindow* window;
 
-    VulkanApi m_api;
+    VulkanContext m_context;
     MainView  m_mainView;
     GraphicsPipeline  m_pipeline;
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_descriptorSets {};
