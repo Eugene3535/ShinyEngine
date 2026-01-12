@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.25.1)
+cmake_minimum_required(VERSION 3.31.10)
 
-project(ShinyEngine LANGUAGES C CXX)
+project(VulkanCubes LANGUAGES C CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -30,18 +30,18 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
-	src/vulkan_api/wrappers/context/VulkanContext.cpp
-	src/vulkan_api/wrappers/presentation/MainView.cpp
-	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.cpp
-	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.cpp
-	src/vulkan_api/wrappers/pipeline/stages/uniform/DescriptorSetLayout.cpp
-	src/vulkan_api/wrappers/pipeline/descriptors/DescriptorPool.cpp
-	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.cpp
-	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
-	src/vulkan_api/wrappers/sync/SyncManager.cpp
-	src/vulkan_api/wrappers/texture/Texture2D.cpp
+	src/vulkan_api/context/VulkanContext.cpp
+	src/vulkan_api/presentation/MainView.cpp
+	src/vulkan_api/pipeline/stages/shader/ShaderStage.cpp
+	src/vulkan_api/pipeline/stages/vertex/VertexInputState.cpp
+	src/vulkan_api/pipeline/stages/uniform/DescriptorSetLayout.cpp
+	src/vulkan_api/pipeline/descriptors/DescriptorPool.cpp
+	src/vulkan_api/pipeline/GraphicsPipeline.cpp
+	src/vulkan_api/command_pool/CommandBufferPool.cpp
+	src/vulkan_api/sync/SyncManager.cpp
+	src/vulkan_api/texture/Texture2D.cpp
 	src/vulkan_api/resources/VkResourceHolder.cpp
-	src/vulkan_api/wrappers/render/Render.cpp
+	src/vulkan_api/render/Render.cpp
 	src/Application.cpp
 	src/main.cpp
 )
@@ -52,17 +52,17 @@ set(HDR_FILES
 	src/vulkan_api/resources/VkResourceHolder.hpp
 	src/vulkan_api/utils/Defines.hpp
 	src/vulkan_api/utils/Helpers.hpp
-	src/vulkan_api/wrappers/command_pool/CommandBufferPool.hpp
-	src/vulkan_api/wrappers/pipeline/descriptors/DescriptorPool.hpp        
-	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp
-	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp
-	src/vulkan_api/wrappers/pipeline/stages/uniform/DescriptorSetLayout.hpp
-	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.hpp    
-	src/vulkan_api/wrappers/presentation/MainView.hpp
-	src/vulkan_api/wrappers/render/Render.hpp
-	src/vulkan_api/wrappers/context/VulkanContext.hpp
-	src/vulkan_api/wrappers/sync/SyncManager.hpp
-	src/vulkan_api/wrappers/texture/Texture2D.hpp
+	src/vulkan_api/command_pool/CommandBufferPool.hpp
+	src/vulkan_api/pipeline/descriptors/DescriptorPool.hpp        
+	src/vulkan_api/pipeline/GraphicsPipeline.hpp
+	src/vulkan_api/pipeline/stages/shader/ShaderStage.hpp
+	src/vulkan_api/pipeline/stages/uniform/DescriptorSetLayout.hpp
+	src/vulkan_api/pipeline/stages/vertex/VertexInputState.hpp    
+	src/vulkan_api/presentation/MainView.hpp
+	src/vulkan_api/render/Render.hpp
+	src/vulkan_api/context/VulkanContext.hpp
+	src/vulkan_api/sync/SyncManager.hpp
+	src/vulkan_api/texture/Texture2D.hpp
 )
 
 set(SHADER_FILES

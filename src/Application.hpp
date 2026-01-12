@@ -5,12 +5,12 @@
 #include <cglm/call/mat4.h>
 
 #include "vulkan_api/utils/Defines.hpp"
-#include "vulkan_api/wrappers/presentation/MainView.hpp"
-#include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
-#include "vulkan_api/wrappers/pipeline/descriptors/DescriptorPool.hpp"
-#include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
-#include "vulkan_api/wrappers/sync/SyncManager.hpp"
-#include "vulkan_api/wrappers/texture/Texture2D.hpp"
+#include "vulkan_api/presentation/MainView.hpp"
+#include "vulkan_api/pipeline/GraphicsPipeline.hpp"
+#include "vulkan_api/pipeline/descriptors/DescriptorPool.hpp"
+#include "vulkan_api/command_pool/CommandBufferPool.hpp"
+#include "vulkan_api/sync/SyncManager.hpp"
+#include "vulkan_api/texture/Texture2D.hpp"
 #include "vulkan_api/resources/VkResourceHolder.hpp"
 
 class Application

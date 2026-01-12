@@ -6,8 +6,8 @@
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
-#include "vulkan_api/wrappers/render/Render.hpp"
+#include "vulkan_api/pipeline/stages/shader/ShaderStage.hpp"
+#include "vulkan_api/render/Render.hpp"
 #include "Camera.hpp"
 
 #include "Application.hpp"
@@ -332,12 +332,7 @@ void Application::cleanup() noexcept
 
 void Application::recreateSwapChain() noexcept
 {
-    auto device = m_context.getDevice();
-    int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
-
-    vkDeviceWaitIdle(device);
-
+    vkDeviceWaitIdle(m_context.getDevice());
     m_mainView.recreate(true);
 }
 
@@ -377,7 +372,7 @@ void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, V
 
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, m_indices.handle, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4s), &m_mvp);
+    vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4s), m_mvp.raw);
     vkCmdDrawIndexed(cmd, m_indices.size, 1, 0, 0, 0);
 }
 
